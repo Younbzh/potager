@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2d6a4f"/>
+  <!-- Pot -->
+  <path d="M180 330 h152 l-18 72 H198 z" fill="#6d4c41"/>
+  <rect x="165" y="318" width="182" height="20" rx="10" fill="#795548"/>
+  <!-- Terre -->
+  <ellipse cx="256" cy="318" rx="76" ry="14" fill="#5d4037"/>
+  <!-- Tige principale -->
+  <rect x="249" y="190" width="14" height="135" rx="7" fill="#52b788"/>
+  <!-- Grande feuille gauche -->
+  <path d="M256 250 Q195 215 175 155 Q215 162 256 220 Z" fill="#74c69d"/>
+  <!-- Grande feuille droite -->
+  <path d="M256 270 Q320 235 340 175 Q300 182 256 240 Z" fill="#40916c"/>
+  <!-- Petite feuille haute gauche -->
+  <path d="M256 210 Q220 190 205 155 Q228 165 256 195 Z" fill="#95d5b2"/>
+  <!-- Petite feuille haute droite -->
+  <path d="M256 220 Q292 200 308 165 Q285 175 256 205 Z" fill="#52b788"/>
+  <!-- Bourgeon -->
+  <ellipse cx="256" cy="182" rx="12" ry="16" fill="#52b788"/>
+  <ellipse cx="256" cy="175" rx="8" ry="10" fill="#95d5b2"/>
+</svg>

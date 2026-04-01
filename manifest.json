@@ -1,0 +1,20 @@
+{
+  "name": "Mon Potager",
+  "short_name": "Potager",
+  "description": "Gestion du potager avec calendrier lunaire biodynamique",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0f7f4",
+  "theme_color": "#2d6a4f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "fr"
+}

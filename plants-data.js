@@ -1,0 +1,651 @@
+// ===== Configuration Kokopelli =====
+// Si l'URL de recherche change, modifier uniquement ici.
+// Pour vérifier : tester https://www.kokopelli-semences.fr/fr/search?q=tomate dans votre navigateur.
+const KOKOPELLI = {
+  base: 'https://www.kokopelli-semences.fr',
+  // URL de recherche — à vérifier et corriger si besoin
+  search: 'https://www.kokopelli-semences.fr/fr/search?q=',
+  // Grandes catégories du catalogue (vérifiées à partir de la structure du site)
+  catalog: [
+    { label: 'Tomates',            emoji: '🍅', path: '/fr/c/semences-de-tomates' },
+    { label: 'Courgettes & Courges', emoji: '🥒', path: '/fr/c/semences-de-courgettes-et-courges' },
+    { label: 'Haricots',           emoji: '🫘', path: '/fr/c/semences-de-haricots' },
+    { label: 'Salades & Chicorées',emoji: '🥬', path: '/fr/c/semences-de-salades' },
+    { label: 'Carottes',           emoji: '🥕', path: '/fr/c/semences-de-carottes' },
+    { label: 'Poivrons & Piments', emoji: '🫑', path: '/fr/c/semences-de-poivrons-et-piments' },
+    { label: 'Aubergines',         emoji: '🍆', path: '/fr/c/semences-d-aubergines' },
+    { label: 'Concombres',         emoji: '🥒', path: '/fr/c/semences-de-concombres' },
+    { label: 'Radis',              emoji: '🔴', path: '/fr/c/semences-de-radis' },
+    { label: 'Oignons & Poireaux', emoji: '🧅', path: '/fr/c/semences-d-oignons-et-de-poireaux' },
+    { label: 'Épinards & Blettes', emoji: '🥬', path: '/fr/c/semences-d-epinards' },
+    { label: 'Betteraves',         emoji: '🟣', path: '/fr/c/semences-de-betteraves' },
+    { label: 'Pommes de terre',    emoji: '🥔', path: '/fr/c/semences-de-pommes-de-terre' },
+    { label: 'Fraises',            emoji: '🍓', path: '/fr/c/semences-de-fraises' },
+    { label: 'Basilic & Aromatiques', emoji: '🌿', path: '/fr/c/semences-aromatiques' },
+    { label: 'Tout le catalogue',  emoji: '📖', path: '/fr/c/semences' },
+  ]
+};
+
+const PLANTS_DB = [
+  {
+    id: 'tomate',
+    name: 'Tomate',
+    emoji: '🍅',
+    category: 'legume-fruit',
+    description: 'Incontournable du potager, la tomate se décline en centaines de variétés. Elle aime la chaleur et le soleil. Très productive quand elle est bien tuteurée.',
+    varieties: ['Cerise', 'Cœur de Bœuf', 'Roma', 'Marmande', 'Ananas', 'Noire de Crimée', 'Saint-Pierre'],
+    planting: { months: [3, 4, 5], depth: 1, spacing: 60, method: 'Plant ou semis en godet (intérieur)' },
+    harvest: { months: [7, 8, 9, 10], duration: '60-80 jours après repiquage' },
+    care: {
+      water: 'Régulier et constant, 2-3L/pied/semaine',
+      sun: 'Plein soleil (min. 6h/jour)',
+      soil: 'Riche, frais, bien drainé, pH 6-7',
+      tips: [
+        'Tuteurer dès 30cm de hauteur',
+        'Supprimer les gourmands pour les variétés indéterminées',
+        'Arroser au pied, jamais sur les feuilles',
+        'Butter le pied pour favoriser l\'enracinement',
+        'Pailler le sol pour conserver l\'humidité'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Basilic', 'Carotte', 'Persil', 'Ciboulette'],
+    avoid: ['Fenouil', 'Chou', 'Pomme de terre'],
+    kokopelli: {
+      search: 'tomate',
+      catalogPath: '/fr/c/semences-de-tomates',
+      varietiesKoko: ['Andine cornue', 'Noire de Crimée', 'Green Zebra', 'Téton de Vénus', 'Pantano Romanesco', 'San Marzano', 'Costoluto Genovese', 'Cerise rouge', 'Black Cherry', 'Chocolate Cherry', 'Cœur de Bœuf']
+    }
+  },
+  {
+    id: 'courgette',
+    name: 'Courgette',
+    emoji: '🥒',
+    category: 'legume-fruit',
+    description: 'Généreuse et productive, la courgette est idéale pour les débutants. Une seule plante peut envahir le potager — prévoir l\'espace nécessaire !',
+    varieties: ['Verte de Milan', 'Jaune dorée', 'Ronde de Nice', 'Diamant', 'Cocozelle'],
+    planting: { months: [4, 5, 6], depth: 2, spacing: 100, method: 'Semis direct ou en godet (après les gelées)' },
+    harvest: { months: [6, 7, 8, 9], duration: '50-60 jours après semis' },
+    care: {
+      water: 'Abondant, surtout en période chaude',
+      sun: 'Plein soleil',
+      soil: 'Riche en compost, humifère',
+      tips: [
+        'Récolter jeune (15-20cm) pour stimuler la production',
+        'Polliniser à la main si peu d\'insectes',
+        'Pailler le sol pour conserver l\'humidité',
+        'Surveiller l\'oïdium sur les feuilles'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Haricot', 'Maïs', 'Capucine', 'Aneth'],
+    avoid: ['Pomme de terre', 'Fenouil'],
+    kokopelli: {
+      search: 'courgette',
+      catalogPath: '/fr/c/semences-de-courgettes-et-courges',
+      varietiesKoko: ['Ronde de Nice', 'Verte d\'Italie', 'Jaune de Sétif', 'Tromba d\'Albenga', 'Pâtisson blanc']
+    }
+  },
+  {
+    id: 'carotte',
+    name: 'Carotte',
+    emoji: '🥕',
+    category: 'legume-racine',
+    description: 'La carotte aime les sols profonds et meubles sans cailloux. Semée directement, elle demande de la patience mais vaut l\'attente.',
+    varieties: ['Nantaise', 'Amsterdam', 'Chantenay', 'Touchon', 'Demi-longue de Hollande', 'Purple Haze'],
+    planting: { months: [3, 4, 5, 6, 7, 8], depth: 1, spacing: 5, method: 'Semis direct en ligne (ne supporte pas le repiquage)' },
+    harvest: { months: [6, 7, 8, 9, 10, 11], duration: '70-90 jours après semis' },
+    care: {
+      water: 'Modéré, éviter les excès qui fissurent les racines',
+      sun: 'Soleil à mi-ombre',
+      soil: 'Léger, profond, sans cailloux, pH 6-7',
+      tips: [
+        'Éclaircir à 5cm dès 10cm de hauteur',
+        'Mélanger les graines avec du sable fin pour un espacement régulier',
+        'Couvrir de filet anti-mouche de la carotte',
+        'Ne pas fertiliser à l\'azote (provoque des racines fourchues)'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Oignon', 'Poireau', 'Salade', 'Romarin', 'Ciboulette'],
+    avoid: ['Aneth', 'Fenouil'],
+    succession: {
+      interval: 28,
+      seasonStart: 3, seasonEnd: 7,
+      maxBatches: 5,
+      note: 'Semez un rang toutes les 4 semaines de mars à juillet pour récolter d\'juin à novembre sans interruption.'
+    }
+  },
+  {
+    id: 'salade',
+    name: 'Salade / Laitue',
+    emoji: '🥬',
+    category: 'legume-feuille',
+    description: 'Culture rapide et facile, la laitue est parfaite pour combler les espaces entre les plantations. Idéale en association.',
+    varieties: ['Batavia', 'Romaine', 'Feuille de chêne', 'Iceberg', 'Mâche', 'Roquette', 'Mesclun'],
+    planting: { months: [3, 4, 5, 6, 7, 8, 9], depth: 0.5, spacing: 25, method: 'Semis direct ou plants repiqués' },
+    harvest: { months: [4, 5, 6, 7, 8, 9, 10], duration: '45-60 jours après semis' },
+    care: {
+      water: 'Régulier, maintenir la fraîcheur',
+      sun: 'Mi-ombre en été (évite la montée en graine)',
+      soil: 'Frais, riche, bien drainé',
+      tips: [
+        'Semer toutes les 3 semaines pour échelonner les récoltes',
+        'Arroser le matin de préférence',
+        'Récolter avant la montée en graine',
+        'Associer avec les radis pour marquer les rangs'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Radis', 'Carotte', 'Fraise', 'Ciboulette'],
+    avoid: ['Persil', 'Céleri'],
+    succession: {
+      interval: 21,
+      seasonStart: 3, seasonEnd: 9,
+      maxBatches: 8,
+      note: 'Semez un petit rang toutes les 3 semaines de mars à septembre : vous aurez toujours une salade à couper sans surplus.'
+    }
+  },
+  {
+    id: 'haricot',
+    name: 'Haricot Vert',
+    emoji: '🫘',
+    category: 'legume-fruit',
+    description: 'Facile à cultiver, le haricot enrichit le sol en azote. Choisir entre nain (compact) ou grimpant (productif) selon l\'espace.',
+    varieties: ['Fin de Bagnols', 'Mangetout', 'Purple Queen', 'Climbing French', 'Borlotti'],
+    planting: { months: [5, 6, 7], depth: 4, spacing: 10, method: 'Semis direct (ne supporte pas le repiquage)' },
+    harvest: { months: [7, 8, 9], duration: '50-65 jours après semis' },
+    care: {
+      water: 'Modéré, éviter les feuilles mouillées',
+      sun: 'Plein soleil',
+      soil: 'Léger, bien drainé, peu calcaire',
+      tips: [
+        'Ne pas semer avant que la terre soit à 15°C minimum',
+        'Tuteurer les variétés grimpantes',
+        'Récolter régulièrement pour prolonger la production',
+        'Laisser quelques gousses sécher pour récupérer les graines'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Maïs', 'Courgette', 'Carotte', 'Chou'],
+    avoid: ['Oignon', 'Ail', 'Fenouil'],
+    succession: {
+      interval: 21,
+      seasonStart: 5, seasonEnd: 7,
+      maxBatches: 4,
+      note: 'Semez 3-4 lots espacés de 3 semaines de mai à juillet pour récolter de juillet à septembre sans tout avoir d\'un coup.'
+    }
+  },
+  {
+    id: 'poivron',
+    name: 'Poivron',
+    emoji: '🫑',
+    category: 'legume-fruit',
+    description: 'Le poivron aime la chaleur et le soleil. Cultivé sous abri dans les régions fraîches, il offre des fruits colorés et savoureux.',
+    varieties: ['California Wonder', 'Marconi', 'Corne de Taureau', 'Lipstick', 'Chocolate Beauty'],
+    planting: { months: [3, 4, 5], depth: 0.5, spacing: 40, method: 'Plant (semis intérieur en février)' },
+    harvest: { months: [7, 8, 9, 10], duration: '70-90 jours après plantation' },
+    care: {
+      water: 'Régulier, jamais en excès',
+      sun: 'Plein soleil, chaleur nécessaire (20°C min)',
+      soil: 'Riche, bien drainé, chaud',
+      tips: [
+        'Démarrer en intérieur 8-10 semaines avant plantation dehors',
+        'Tuteurer si nécessaire',
+        'Récolter vert ou attendre la maturité colorée',
+        'Protéger du vent'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Basilic', 'Tomate', 'Carotte', 'Tagète'],
+    avoid: ['Fenouil', 'Brocoli']
+  },
+  {
+    id: 'aubergine',
+    name: 'Aubergine',
+    emoji: '🍆',
+    category: 'legume-fruit',
+    description: 'Gourmande en chaleur et en nutriments, l\'aubergine récompense avec de belles récoltes estivales aux couleurs magnifiques.',
+    varieties: ['Black Beauty', 'Slim Jim', 'Blanche de New York', 'Rosa Bianca', 'Listada de Gandia'],
+    planting: { months: [4, 5], depth: 0.5, spacing: 60, method: 'Plant (semis en intérieur en mars)' },
+    harvest: { months: [7, 8, 9], duration: '75-85 jours après plantation' },
+    care: {
+      water: 'Régulier et abondant',
+      sun: 'Plein soleil, minimum 25°C',
+      soil: 'Riche, chaud, pH 6-6.5',
+      tips: [
+        'Pincer après 4-5 fleurs pour obtenir de beaux fruits',
+        'Pailler pour maintenir la chaleur au sol',
+        'Récolter avant complète maturité (peau brillante)',
+        'Traiter préventivement contre les pucerons'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Basilic', 'Poivron', 'Tagète'],
+    avoid: ['Fenouil', 'Pomme de terre']
+  },
+  {
+    id: 'radis',
+    name: 'Radis',
+    emoji: '🔴',
+    category: 'legume-racine',
+    description: 'Le champion de la rapidité ! En 3-4 semaines, vous avez des radis croquants. Parfait en intercalaire et pour les impatients.',
+    varieties: ['Flambeau', 'French Breakfast', 'Rond rouge', 'Cherry Belle', 'Radis noir (hiver)'],
+    planting: { months: [3, 4, 5, 6, 7, 8, 9], depth: 1, spacing: 3, method: 'Semis direct, à la volée ou en ligne' },
+    harvest: { months: [4, 5, 6, 7, 8, 9, 10], duration: '20-30 jours après semis' },
+    care: {
+      water: 'Régulier, maintenir humide',
+      sun: 'Mi-ombre en été (évite la montée en graine)',
+      soil: 'Léger, meuble, frais',
+      tips: [
+        'Ne pas attendre la récolte : devient creux et piquant',
+        'Semer toutes les 2-3 semaines pour échelonner',
+        'Idéal comme culture intercalaire entre les rangs',
+        'Éviter les excès d\'azote'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Salade', 'Carotte', 'Épinard'],
+    avoid: ['Chou', 'Hysope'],
+    succession: {
+      interval: 14,
+      seasonStart: 3, seasonEnd: 9,
+      maxBatches: 12,
+      note: 'La plante reine de l\'échelonnement ! Semez toutes les 2 semaines de mars à septembre : récoltez en 3-4 semaines en continu. Idéal pour ne jamais en manquer.'
+    }
+  },
+  {
+    id: 'oignon',
+    name: 'Oignon',
+    emoji: '🧅',
+    category: 'legume-racine',
+    description: 'Indispensable en cuisine, l\'oignon est facile à cultiver et se conserve longtemps après récolte. Planté en bulbilles pour simplifier.',
+    varieties: ['Sturon', 'Rouge de Florence', 'Blanc hâtif', 'Cipollini', 'Walla Walla'],
+    planting: { months: [3, 4], depth: 2, spacing: 10, method: 'Bulbilles (petits oignons) ou semis' },
+    harvest: { months: [7, 8, 9], duration: '90-120 jours après plantation' },
+    care: {
+      water: 'Modéré, réduire 3 semaines avant récolte',
+      sun: 'Plein soleil',
+      soil: 'Léger, profond, bien drainé',
+      tips: [
+        'Planter les bulbilles pointe vers le haut',
+        'Arrêter l\'arrosage quand les tiges tombent',
+        'Laisser sécher 2-3 semaines au soleil avant stockage',
+        'Surveiller la mouche de l\'oignon (filet de protection)'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Carotte', 'Betterave', 'Salade', 'Fraise'],
+    avoid: ['Haricot', 'Pois', 'Sauge']
+  },
+  {
+    id: 'ail',
+    name: 'Ail',
+    emoji: '🧄',
+    category: 'legume-racine',
+    description: 'Planté en automne, l\'ail est récolté en été. Il repousse naturellement de nombreux nuisibles du potager. Très facile.',
+    varieties: ['Rose de Lautrec', 'Germidour', 'Blanc de Lomagne', 'Violet de Cadours'],
+    planting: { months: [10, 11], depth: 5, spacing: 15, method: 'Caïeux (gousses séparées)' },
+    harvest: { months: [6, 7], duration: 'Récolte quand la moitié des feuilles jaunissent' },
+    care: {
+      water: 'Peu d\'arrosage, résistant à la sécheresse',
+      sun: 'Plein soleil',
+      soil: 'Léger, calcaire, bien drainé',
+      tips: [
+        'Planter la pointe vers le haut',
+        'Ne pas enterrer trop profond (5cm max)',
+        'Arracher quand 50% des feuilles sont jaunes',
+        'Faire sécher 3 semaines à l\'abri avant stockage'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Rose', 'Fraise', 'Carotte', 'Tomate'],
+    avoid: ['Haricot', 'Pois', 'Chou']
+  },
+  {
+    id: 'basilic',
+    name: 'Basilic',
+    emoji: '🌿',
+    category: 'aromatique',
+    description: 'Le roi des aromatiques d\'été, indissociable de la tomate. Craint le froid et l\'eau stagnante. Indispensable !',
+    varieties: ['Grand vert', 'Pourpre', 'Nain compact', 'Citronné', 'Thaïlandais', 'Cannelle'],
+    planting: { months: [4, 5, 6], depth: 0.5, spacing: 20, method: 'Semis intérieur en avril ou plant dès mai' },
+    harvest: { months: [6, 7, 8, 9], duration: 'Dès que la plante a 6 paires de feuilles' },
+    care: {
+      water: 'Régulier mais pas sur les feuilles',
+      sun: 'Plein soleil, chaleur',
+      soil: 'Bien drainé, humifère, chaud',
+      tips: [
+        'Pincer les tiges florales pour prolonger la récolte',
+        'Couper toujours au-dessus d\'un nœud foliaire',
+        'Rentrer avant les premiers froids',
+        'Associer avec la tomate : améliore le goût et repousse les insectes'
+      ]
+    },
+    biodynamic: 'fleur',
+    companions: ['Tomate', 'Poivron', 'Aubergine'],
+    avoid: ['Sauge', 'Romarin', 'Thym']
+  },
+  {
+    id: 'persil',
+    name: 'Persil',
+    emoji: '🌿',
+    category: 'aromatique',
+    description: 'Bisannuel riche en vitamines, le persil est un indispensable. Long à germer (3-4 semaines) : il nécessite de la patience.',
+    varieties: ['Frisé', 'Géant d\'Italie (plat)', 'Hamburg (racine comestible)'],
+    planting: { months: [3, 4, 5, 6], depth: 0.5, spacing: 20, method: 'Semis direct (tremper les graines 24h avant)' },
+    harvest: { months: [5, 6, 7, 8, 9, 10, 11], duration: '70-90 jours après semis' },
+    care: {
+      water: 'Régulier, sol toujours légèrement humide',
+      sun: 'Mi-ombre acceptée',
+      soil: 'Riche, frais, bien drainé',
+      tips: [
+        'Faire tremper les graines 24h avant semis (accélère la germination)',
+        'La germination est très longue : 3-4 semaines',
+        'Couper au ras pour stimuler la repousse',
+        'Peut passer l\'hiver sous un voile de forçage'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Tomate', 'Asperge', 'Carotte', 'Rose'],
+    avoid: ['Salade', 'Oignon']
+  },
+  {
+    id: 'ciboulette',
+    name: 'Ciboulette',
+    emoji: '🌿',
+    category: 'aromatique',
+    description: 'Vivace facile et décorative avec ses jolies fleurs roses. Elle repousse les pucerons et attire les pollinisateurs. Très robuste.',
+    varieties: ['Commune', 'Ail (Ciboulette chinoise)'],
+    planting: { months: [3, 4, 5], depth: 0.5, spacing: 25, method: 'Semis ou division de touffe' },
+    harvest: { months: [4, 5, 6, 7, 8, 9, 10], duration: 'Dès que les brins font 15cm' },
+    care: {
+      water: 'Modéré',
+      sun: 'Soleil à mi-ombre',
+      soil: 'Tous types, préfère sol frais',
+      tips: [
+        'Couper à 2-3cm du sol pour stimuler la repousse',
+        'Diviser la touffe tous les 3 ans',
+        'Les fleurs roses sont comestibles',
+        'Garder quelques fleurs pour laisser grainer'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Carotte', 'Tomate', 'Rose', 'Salade'],
+    avoid: ['Haricot', 'Pois']
+  },
+  {
+    id: 'menthe',
+    name: 'Menthe',
+    emoji: '🌿',
+    category: 'aromatique',
+    description: 'Envahissante mais très utile, la menthe est à cultiver en pot pour contenir sa croissance. Repousse de nombreux nuisibles.',
+    varieties: ['Poivrée', 'Verte', 'Marocaine', 'Chocolat', 'Ananas', 'Bergamote'],
+    planting: { months: [4, 5, 6], depth: 2, spacing: 30, method: 'Plant ou division de rhizome — toujours en pot' },
+    harvest: { months: [5, 6, 7, 8, 9], duration: 'Dès que la plante est établie (20cm)' },
+    care: {
+      water: 'Régulier, aime l\'humidité',
+      sun: 'Mi-ombre de préférence',
+      soil: 'Riche, frais, humide',
+      tips: [
+        'Toujours cultiver en pot pour limiter l\'envahissement',
+        'Couper avant floraison pour conserver le goût',
+        'Rentrer le pot en hiver dans les régions froides',
+        'Repousse vigoureusement chaque année'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Chou', 'Tomate', 'Pois'],
+    avoid: ['Persil', 'Camomille']
+  },
+  {
+    id: 'epinard',
+    name: 'Épinard',
+    emoji: '🥬',
+    category: 'legume-feuille',
+    description: 'Culture de printemps et d\'automne, l\'épinard n\'aime pas la chaleur estivale qui le fait monter en graine. Rapide et nutritif.',
+    varieties: ['Géant d\'Hiver', 'Matador', 'Bloomsdale', 'Tétragone (fausse-épinard d\'été)'],
+    planting: { months: [3, 4, 8, 9], depth: 2, spacing: 15, method: 'Semis direct' },
+    harvest: { months: [4, 5, 6, 10, 11], duration: '40-60 jours après semis' },
+    care: {
+      water: 'Régulier et constant',
+      sun: 'Mi-ombre en été',
+      soil: 'Riche en azote, frais',
+      tips: [
+        'Semer tôt au printemps ou en fin d\'été',
+        'Choisir des variétés résistantes à la montée en graine',
+        'Récolter les feuilles du bas en premier',
+        'Excellent pour les bacs et les balcons'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Fraise', 'Céleri', 'Chou', 'Pois'],
+    avoid: ['Betterave', 'Fenouil'],
+    succession: {
+      interval: 21,
+      seasonStart: 3, seasonEnd: 4,
+      maxBatches: 3,
+      note: 'Semez 2-3 lots espacés de 3 semaines au printemps (mars-avril), puis recommencez en août-septembre pour une récolte automnale.'
+    }
+  },
+  {
+    id: 'fraise',
+    name: 'Fraise',
+    emoji: '🍓',
+    category: 'fruit',
+    description: 'Facile et très productive, la fraise est adorée des enfants. Les stolons permettent de multiplier les plants gratuitement.',
+    varieties: ['Charlotte', 'Mara des Bois', 'Gariguette', 'Ciflorette', 'Fraise des Bois'],
+    planting: { months: [3, 4, 9, 10], depth: 0, spacing: 30, method: 'Plant ou stolon enraciné' },
+    harvest: { months: [5, 6, 7, 8], duration: '3-4 semaines après floraison' },
+    care: {
+      water: 'Régulier, éviter de mouiller les fruits',
+      sun: 'Plein soleil',
+      soil: 'Riche, légèrement acide, bien drainé',
+      tips: [
+        'Ne jamais enterrer le collet (nœud central)',
+        'Supprimer les stolons sauf pour multiplication',
+        'Pailler sous les fruits pour les protéger de la boue',
+        'Renouveler les plants tous les 3-4 ans'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Ail', 'Salade', 'Épinard', 'Bourrache'],
+    avoid: ['Chou', 'Fenouil']
+  },
+  {
+    id: 'pomme-de-terre',
+    name: 'Pomme de Terre',
+    emoji: '🥔',
+    category: 'legume-racine',
+    description: 'Culture facile et très productive, parfaite pour ameublir une nouvelle parcelle. Les primeurs récoltées fraîches sont un délice.',
+    varieties: ['Charlotte', 'Ratte', 'Belle de Fontenay', 'Amandine', 'BF15', 'Vitelotte (violette)'],
+    planting: { months: [3, 4, 5], depth: 10, spacing: 40, method: 'Plants germés (pommes de terre-semences)' },
+    harvest: { months: [6, 7, 8, 9], duration: 'Quand le feuillage commence à jaunir' },
+    care: {
+      water: 'Régulier, crucial pendant la tubérisation',
+      sun: 'Plein soleil',
+      soil: 'Profond, meuble, légèrement acide',
+      tips: [
+        'Butter régulièrement pour éviter le verdissement des tubercules',
+        'Arrêter l\'arrosage 2 semaines avant la récolte',
+        'Faire germer les plants 4-6 semaines à l\'avance',
+        'Laisser sécher 2h au soleil avant stockage'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Haricot', 'Chou', 'Maïs', 'Capucine'],
+    avoid: ['Tomate', 'Concombre', 'Tournesol']
+  },
+  {
+    id: 'concombre',
+    name: 'Concombre',
+    emoji: '🥒',
+    category: 'legume-fruit',
+    description: 'Gourmand en eau et en chaleur, le concombre est très productif en plein été. Délicieux frais, il se cultive aussi en serre.',
+    varieties: ['Marketmore', 'Vert long maraîcher', 'Muncher', 'Lemon Cucumber', 'Poinsett'],
+    planting: { months: [4, 5, 6], depth: 2, spacing: 60, method: 'Semis en godet ou semis direct après 15°C' },
+    harvest: { months: [7, 8, 9], duration: '50-60 jours après semis' },
+    care: {
+      water: 'Abondant et régulier, jamais de stress hydrique',
+      sun: 'Plein soleil, chaleur',
+      soil: 'Riche, chaud, bien drainé',
+      tips: [
+        'Faire grimper sur un support pour gagner de la place',
+        'Récolter avant que les graines durcissent',
+        'Maintenir une humidité constante (évite l\'amertume)',
+        'Ventiler pour prévenir l\'oïdium'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Haricot', 'Pois', 'Salade', 'Aneth'],
+    avoid: ['Pomme de terre', 'Tomate', 'Sauge'],
+    succession: {
+      interval: 21,
+      seasonStart: 4, seasonEnd: 6,
+      maxBatches: 3,
+      note: 'Semez 2-3 lots espacés de 3 semaines d\'avril à juin pour étaler la récolte sur tout l\'été sans surplus.'
+    }
+  },
+  {
+    id: 'betterave',
+    name: 'Betterave',
+    emoji: '🟣',
+    category: 'legume-racine',
+    description: 'Facile et rustique, la betterave offre ses feuilles et ses racines à la cuisine. Délicieuse crue en salade ou cuite au four.',
+    varieties: ['Rouge de Détroit', 'Chioggia (rayée)', 'Crapaudine', 'Golden (jaune)', 'Cylindra'],
+    planting: { months: [4, 5, 6, 7], depth: 2, spacing: 10, method: 'Semis direct (chaque "graine" = glomérule de 2-3 graines)' },
+    harvest: { months: [7, 8, 9, 10], duration: '70-90 jours après semis' },
+    care: {
+      water: 'Modéré et régulier',
+      sun: 'Soleil à mi-ombre',
+      soil: 'Profond, meuble, sans excès d\'azote',
+      tips: [
+        'Éclaircir à 10cm : chaque glomérule donne plusieurs plants',
+        'Récolter jeune pour la saveur (5-8cm de diamètre)',
+        'Les feuilles se cuisinent comme des épinards',
+        'Excellente conservation en cave dans du sable'
+      ]
+    },
+    biodynamic: 'racine',
+    companions: ['Oignon', 'Chou', 'Salade'],
+    avoid: ['Haricot', 'Moutarde'],
+    succession: {
+      interval: 21,
+      seasonStart: 4, seasonEnd: 7,
+      maxBatches: 4,
+      note: 'Semez 3-4 lots espacés de 3 semaines d\'avril à juillet pour récolter des betteraves tendres de juillet à octobre.'
+    }
+  }
+];
+
+// Enrichissement Kokopelli : on injecte les données après définition du tableau
+// pour ne pas alourdir chaque entrée individuelle.
+const KOKOPELLI_DATA = {
+  'carotte': {
+    search: 'carotte',
+    catalogPath: '/fr/c/semences-de-carottes',
+    varietiesKoko: ['Chantenay rouge cœur', 'Nantaise améliorée', 'Blanche à collet vert', 'Jaune obtuse du Doubs', 'Purple Haze', 'Touchon']
+  },
+  'salade': {
+    search: 'salade laitue',
+    catalogPath: '/fr/c/semences-de-salades',
+    varietiesKoko: ['Blonde de Paris', 'Merveille des quatre saisons', 'Batavia dorée', 'Romaine blonde maraîchère', 'Feuille de chêne blonde', 'Rouge grenobloise', 'Corne de cerf']
+  },
+  'haricot': {
+    search: 'haricot',
+    catalogPath: '/fr/c/semences-de-haricots',
+    varietiesKoko: ['Merveille de Piémont', 'Beurre de Rocquencourt', 'Contender', 'Purple Queen', 'Cherokee Trail of Tears', 'Borlotti']
+  },
+  'poivron': {
+    search: 'poivron piment',
+    catalogPath: '/fr/c/semences-de-poivrons-et-piments',
+    varietiesKoko: ['Corno di Toro rosso', 'Doux d\'Espagne', 'Topepo rosso', 'Lipstick', 'Marconi jaune']
+  },
+  'aubergine': {
+    search: 'aubergine',
+    catalogPath: '/fr/c/semences-d-aubergines',
+    varietiesKoko: ['Violette de Florence', 'Listada de Gandia', 'Rosa Bianca', 'Blanche de New York', 'Ronde verte de Thaïlande']
+  },
+  'radis': {
+    search: 'radis',
+    catalogPath: '/fr/c/semences-de-radis',
+    varietiesKoko: ['Flambeau', 'French Breakfast', 'D\'Hiver de Stuttgart', 'Violet de Gournay', 'Long noir d\'Hiver']
+  },
+  'oignon': {
+    search: 'oignon',
+    catalogPath: '/fr/c/semences-d-oignons-et-de-poireaux',
+    varietiesKoko: ['Rouge de Florence', 'Jaune paille des Vertus', 'Blanc de Lisbonne', 'Rouge de Brunswick']
+  },
+  'ail': {
+    search: 'ail',
+    catalogPath: '/fr/c/semences-d-oignons-et-de-poireaux',
+    varietiesKoko: ['Rose de Lautrec', 'Violet de Cadours', 'Blanc de Lomagne']
+  },
+  'basilic': {
+    search: 'basilic',
+    catalogPath: '/fr/c/semences-aromatiques',
+    varietiesKoko: ['Grand vert', 'Pourpre ruffles', 'Citronné', 'Thaïlandais', 'Canneberge']
+  },
+  'persil': {
+    search: 'persil',
+    catalogPath: '/fr/c/semences-aromatiques',
+    varietiesKoko: ['Géant d\'Italie', 'Mousse vert foncé']
+  },
+  'ciboulette': {
+    search: 'ciboulette',
+    catalogPath: '/fr/c/semences-aromatiques',
+    varietiesKoko: ['Ciboulette commune', 'Ciboulette d\'ail (Allium tuberosum)']
+  },
+  'menthe': {
+    search: 'menthe',
+    catalogPath: '/fr/c/semences-aromatiques',
+    varietiesKoko: ['Menthe poivrée', 'Menthe verte']
+  },
+  'epinard': {
+    search: 'épinard',
+    catalogPath: '/fr/c/semences-d-epinards',
+    varietiesKoko: ['Géant d\'Hiver', 'Matador', 'Bloomsdale Longstanding', 'Tétragone cornue']
+  },
+  'fraise': {
+    search: 'fraise',
+    catalogPath: '/fr/c/semences-de-fraises',
+    varietiesKoko: ['Fraise des Bois', 'Regina', 'Alexandria']
+  },
+  'pomme-de-terre': {
+    search: 'pomme de terre',
+    catalogPath: '/fr/c/semences-de-pommes-de-terre',
+    varietiesKoko: ['Vitelotte', 'Ratte', 'Belle de Fontenay', 'BF15', 'Bleue d\'Artois']
+  },
+  'concombre': {
+    search: 'concombre',
+    catalogPath: '/fr/c/semences-de-concombres',
+    varietiesKoko: ['Marketmore', 'Poinsett 76', 'Lemon Cucumber', 'Straight Eight']
+  },
+  'betterave': {
+    search: 'betterave',
+    catalogPath: '/fr/c/semences-de-betteraves',
+    varietiesKoko: ['Rouge de Détroit', 'Chioggia', 'Crapaudine', 'Golden', 'Cylindra']
+  }
+};
+
+// Inject Kokopelli data into PLANTS_DB entries
+// (done after array definition to keep individual entries readable)
+PLANTS_DB.forEach(p => {
+  if (!p.kokopelli && KOKOPELLI_DATA[p.id]) {
+    p.kokopelli = KOKOPELLI_DATA[p.id];
+  }
+});
+
+const CATEGORIES = {
+  'legume-fruit': { label: 'Légumes-fruits', emoji: '🍅', color: '#e76f51' },
+  'legume-feuille': { label: 'Légumes-feuilles', emoji: '🥬', color: '#52b788' },
+  'legume-racine': { label: 'Légumes-racines', emoji: '🥕', color: '#e9c46a' },
+  'aromatique': { label: 'Aromatiques', emoji: '🌿', color: '#74c69d' },
+  'fruit': { label: 'Fruits', emoji: '🍓', color: '#e63946' }
+};
+
+const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+const MONTHS_SHORT = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun',
+  'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
