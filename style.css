@@ -830,6 +830,355 @@ img { max-width: 100%; }
 .text-center { text-align: center; }
 .text-danger { color: var(--danger); }
 
+/* ===== Plant Status ===== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.status-stepper {
+  display: flex;
+  gap: 0;
+  background: var(--bg);
+  border-radius: 24px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  margin: 12px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.status-stepper::-webkit-scrollbar { display: none; }
+.status-step {
+  flex: 1;
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 7px 4px;
+  border-radius: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all var(--transition);
+  gap: 2px;
+  white-space: nowrap;
+}
+.status-step .step-emoji { font-size: 18px; }
+.status-step.active { background: var(--primary); color: white; }
+.status-step.done { color: var(--primary); }
+.status-step.done .step-emoji { opacity: 0.5; }
+
+/* ===== Weather Widget ===== */
+.weather-widget {
+  background: linear-gradient(135deg, #1565c0 0%, #1976d2 60%, #42a5f5 100%);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  color: white;
+  margin-bottom: 12px;
+  border: none;
+}
+.weather-current {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.weather-main-emoji { font-size: 42px; line-height: 1; }
+.weather-main-info { flex: 1; }
+.weather-temp { font-size: 28px; font-weight: 800; line-height: 1; }
+.weather-label { font-size: 13px; opacity: 0.9; margin-top: 2px; }
+.weather-detail { font-size: 12px; opacity: 0.75; }
+.weather-forecast {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.weather-day {
+  flex: 1;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 11px;
+}
+.weather-day-label { opacity: 0.8; font-weight: 600; margin-bottom: 2px; }
+.weather-day-emoji { font-size: 18px; display: block; margin: 2px 0; }
+.weather-day-temp { font-size: 12px; font-weight: 700; }
+.weather-day-rain { font-size: 10px; opacity: 0.8; }
+.weather-advice {
+  background: rgba(255,255,255,0.15);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+}
+.weather-advice p { font-size: 12px; line-height: 1.5; margin: 0; }
+.weather-loading { text-align: center; padding: 16px; opacity: 0.7; font-size: 14px; }
+.weather-error { font-size: 12px; opacity: 0.7; padding: 8px 0; text-align: center; }
+
+/* ===== Badges / Achievements ===== */
+.badges-section { margin-bottom: 4px; }
+.badges-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.badge-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.badge-card.locked { opacity: 0.35; filter: grayscale(1); }
+.badge-emoji { font-size: 26px; }
+.badge-label { font-size: 9px; font-weight: 700; color: var(--text-mid); line-height: 1.2; }
+.badge-rarity-gold   { border-color: #f9a825; background: #fffde7; }
+.badge-rarity-silver { border-color: #90a4ae; background: #f5f5f5; }
+
+/* Toast notification for new badge */
+.badge-toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1b2e25;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 9999;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.3s ease forwards;
+  white-space: nowrap;
+  max-width: 90vw;
+}
+@keyframes toastIn {
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+.badge-toast-emoji { font-size: 22px; }
+.badge-toast-body { display: flex; flex-direction: column; gap: 1px; }
+.badge-toast-title { font-size: 10px; opacity: 0.7; font-weight: 600; text-transform: uppercase; }
+.badge-toast-label { font-size: 14px; font-weight: 800; }
+.badge-toast-desc  { font-size: 11px; opacity: 0.8; }
+.badge-toast-gold   { background: linear-gradient(135deg, #7b4f00 0%, #c8860a 100%); }
+.badge-toast-silver { background: linear-gradient(135deg, #37474f 0%, #78909c 100%); }
+.badge-toast-out { animation: toastOut 0.4s ease forwards; }
+@keyframes toastOut {
+  to { transform: translateX(-50%) translateY(30px); opacity: 0; }
+}
+
+/* ===== Harvest Chart ===== */
+.harvest-chart-wrap { padding: 4px 0 8px; }
+.hchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100px;
+  padding: 0 4px;
+}
+.hchart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.hchart-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--primary-soft);
+  min-height: 4px;
+  transition: height 0.4s ease;
+  position: relative;
+}
+.hchart-bar:hover { background: var(--primary); }
+.hchart-val {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.hchart-month { font-size: 8px; font-weight: 600; color: var(--text-light); margin-top: 4px; }
+
+/* Stats cards */
+.stats-full-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.stats-full-card {
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  padding: 16px;
+  text-align: center;
+}
+.stats-full-num { font-size: 36px; font-weight: 800; color: var(--primary); display: block; }
+.stats-full-lbl { font-size: 12px; color: var(--text-light); font-weight: 600; display: block; margin-top: 2px; }
+
+/* ===== Quick Note Modal ===== */
+.quick-note-plant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.quick-note-plant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 14px;
+}
+.quick-note-plant-item:active { background: var(--primary-bg); border-color: var(--primary); }
+.quick-note-plant-item.selected { background: var(--primary-bg); border-color: var(--primary); }
+
+/* Photo note */
+.note-photo-wrap { margin-top: 8px; }
+.note-photo-thumb {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  display: block;
+}
+.photo-input-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all var(--transition);
+  width: 100%;
+  justify-content: center;
+  margin-top: 8px;
+}
+.photo-input-label:active { background: var(--primary-bg); border-color: var(--primary); color: var(--primary); }
+
+/* ===== Rotation View ===== */
+.rotation-family-card {
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.rotation-family-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rotation-family-name { font-size: 14px; font-weight: 700; flex: 1; }
+.rotation-years-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-mid);
+  font-weight: 600;
+}
+.rotation-zone-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.rotation-zone-tag {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* ===== Season Journal ===== */
+.journal-section { margin-bottom: 16px; }
+.journal-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+.journal-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg);
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.4;
+}
+.journal-entry-date { font-size: 11px; color: var(--text-light); flex-shrink: 0; padding-top: 1px; }
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: white;
+  border-radius: var(--r);
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 16px;
+}
+
+/* ===== Notification permission banner ===== */
+.notif-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: var(--r-sm);
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #0d47a1;
+}
+.notif-banner button {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 5px 12px;
+  background: #1565c0;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ===== Garden Plan View ===== */
 .garden-meta {
   display: grid;

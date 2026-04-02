@@ -13,14 +13,68 @@ class PotagerApp {
     await db.init();
     this.setupNav();
     this.registerSW();
+    BadgeSystem.trackStreak();
+    this.checkNotifications();
 
-    // Handle Web Share Target — app opened with a shared Kokopelli URL
     const shared = this.checkSharedUrl();
     if (shared) {
       this.navigate('add-plant');
     } else {
       this.navigate('home');
     }
+
+    // Check badges after a short delay (let views render first)
+    setTimeout(() => this.checkBadges(), 1200);
+  }
+
+  async checkBadges() {
+    const stats = await db.getStats();
+    const plants = await db.getPlants();
+    const growing = plants.filter(p => p.status !== 'removed');
+    const locations = new Set(growing.map(p => p.location).filter(Boolean));
+    const categories = new Set(growing.map(p => {
+      const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+      return p.category || dbP?.category;
+    }).filter(Boolean));
+    const hasCompanion = growing.some(p => {
+      const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+      return (p.category || dbP?.category) === 'fleur-compagne';
+    });
+
+    const badgeStats = {
+      totalPlants: growing.length,
+      notes: stats.notes,
+      harvests: stats.harvests,
+      streak: BadgeSystem.trackStreak(),
+      hasCompanion,
+      zones: locations.size,
+      categories: categories.size
+    };
+
+    const newBadges = await BadgeSystem.check(badgeStats);
+    newBadges.forEach(b => BadgeSystem.showToast(b));
+  }
+
+  checkNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const nextPhases = MoonCalc.getNextPhases(new Date());
+    const soon = nextPhases.filter(p => p.daysUntil <= 1);
+    soon.forEach(phase => {
+      const key = `notif-${phase.name}-${new Date().toDateString()}`;
+      if (!localStorage.getItem(key)) {
+        new Notification(`${phase.emoji} ${phase.name} ${phase.daysUntil === 0 ? 'aujourd\'hui' : 'demain'} !`, {
+          body: phase.dateStr, icon: './icon.svg', badge: './icon.svg'
+        });
+        localStorage.setItem(key, '1');
+      }
+    });
+  }
+
+  async requestNotifications() {
+    if (!('Notification' in window)) return;
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') this.checkNotifications();
+    this.navigate('home');
   }
 
   // Check if app was opened via Share Target (Kokopelli URL shared from browser)
@@ -130,6 +184,9 @@ class PotagerApp {
       case 'calendar': this.renderHeader(header, 'Calendrier', false); main.innerHTML = this.viewCalendar(); break;
       case 'moon':     this.renderHeader(header, 'Lune & Biodynamie', false); main.innerHTML = this.viewMoon(); break;
       case 'garden':   this.renderHeader(header, 'Plan du Jardin', false); main.innerHTML = await this.viewGarden(); break;
+      case 'stats':    this.renderHeader(header, 'Statistiques & Badges', true); main.innerHTML = await this.viewStats(); break;
+      case 'journal':  this.renderHeader(header, 'Journal de saison', true); main.innerHTML = await this.viewJournal(); break;
+      case 'rotation': this.renderHeader(header, 'Rotation des cultures', true); main.innerHTML = this.viewRotation(); break;
       case 'plant-detail': this.renderHeader(header, '', true); main.innerHTML = await this.viewPlantDetail(params.id); break;
       case 'add-plant': this.renderHeader(header, 'Ajouter une plante', true); main.innerHTML = this.viewAddPlant(); break;
       case 'add-note': this.renderHeader(header, 'Ajouter une note', true); main.innerHTML = this.viewAddNote(params.plantId); break;
@@ -163,11 +220,24 @@ class PotagerApp {
     const recent = await db.getRecentPlants(4);
     const succReminders = await this.getSuccessionReminders();
 
+    // Weather (async, injected after render)
+    const weatherHTML = `<div class="weather-widget" id="weather-widget">
+      <div class="weather-loading">⛅ Chargement météo…</div></div>`;
+
+    const showNotifBanner = ('Notification' in window) && Notification.permission === 'default';
+
     const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return `
       <p class="home-greeting">Bonjour 👋</p>
       <p class="home-date">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</p>
+
+      ${showNotifBanner ? `<div class="notif-banner">
+        🔔 Recevez des rappels pour la lune et vos semis
+        <button id="btn-enable-notif">Activer</button>
+      </div>` : ''}
+
+      ${weatherHTML}
 
       <div class="moon-widget card" style="cursor:pointer" id="home-moon-btn">
         <div class="moon-widget-emoji">${phaseEmoji}</div>
@@ -244,6 +314,17 @@ class PotagerApp {
             ${recent.map(p => this.plantCardHTML(p)).join('')}
           </div>`
       }
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
+        <button class="btn btn-outline" id="btn-go-stats" style="justify-content:center;gap:6px">
+          📊 Statistiques
+        </button>
+        <button class="btn btn-outline" id="btn-go-journal" style="justify-content:center;gap:6px">
+          📖 Journal 2026
+        </button>
+      </div>
+
+      <button class="fab" id="fab-quick-note" title="Note rapide">✏️</button>
     `;
   }
 
@@ -254,6 +335,8 @@ class PotagerApp {
     const cat = plant.category || (dbPlant ? dbPlant.category : '');
     const catColor = CATEGORIES[cat] ? CATEGORIES[cat].color : '#52b788';
     const date = new Date(plant.plantedAt || plant.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const statusKey = plant.growthStatus || plant.status || 'semis';
+    const st = PLANT_STATUS[statusKey] || PLANT_STATUS.semis;
 
     const qty = plant.quantity && plant.quantity > 1
       ? `<span style="position:absolute;top:8px;left:8px;background:var(--primary);color:white;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px">×${plant.quantity}</span>`
@@ -265,7 +348,10 @@ class PotagerApp {
         <span class="plant-card-emoji">${emoji}</span>
         <div class="plant-card-name">${name}</div>
         <div class="plant-card-variety">${plant.variety || '—'}</div>
-        <div class="plant-card-date">🗓 ${date}</div>
+        <div style="margin-top:6px">
+          <span class="status-badge" style="background:${st.color};color:${st.textColor}">${st.emoji} ${st.label}</span>
+        </div>
+        <div class="plant-card-date" style="margin-top:4px">🗓 ${date}</div>
       </div>
     `;
   }
@@ -358,6 +444,8 @@ class PotagerApp {
         ${plant.location ? `<div class="plant-hero-date">📍 ${plant.location}</div>` : ''}
       </div>
 
+      ${this.statusStepperHTML(plant)}
+
       <div class="tabs-bar">
         <button class="tab-btn ${this.activeTab === 'fiche' ? 'active' : ''}" data-tab="fiche">Fiche</button>
         <button class="tab-btn ${this.activeTab === 'notes' ? 'active' : ''}" data-tab="notes">Notes (${notes.length})</button>
@@ -388,6 +476,321 @@ class PotagerApp {
 
       <button class="fab" id="fab-add-note" title="Ajouter une note">+</button>
     `;
+  }
+
+  statusStepperHTML(plant) {
+    const steps = ['semis', 'croissance', 'floraison', 'recolte', 'termine'];
+    const current = plant.growthStatus || (plant.status === 'removed' ? 'termine' : 'semis');
+    const currentIdx = steps.indexOf(current);
+    return `
+      <div class="status-stepper" id="status-stepper">
+        ${steps.map((s, i) => {
+          const st = PLANT_STATUS[s];
+          const isDone = i < currentIdx;
+          const isActive = i === currentIdx;
+          return `<div class="status-step ${isActive ? 'active' : isDone ? 'done' : ''}"
+            data-status="${s}" data-plant-id="${plant.id}">
+            <span class="step-emoji">${st.emoji}</span>
+            <span>${st.label}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  // ===== STATS VIEW =====
+  async viewStats() {
+    const plants = await db.getPlants();
+    const notes = await db.getAll('notes');
+    const harvests = await db.getAll('harvests');
+    const growing = plants.filter(p => p.status !== 'removed');
+
+    // Monthly harvest counts (current year)
+    const year = new Date().getFullYear();
+    const byMonth = Array(12).fill(0);
+    harvests.forEach(h => {
+      const d = new Date(h.date);
+      if (d.getFullYear() === year) byMonth[d.getMonth()]++;
+    });
+    const maxVal = Math.max(...byMonth, 1);
+
+    const chartHTML = byMonth.map((v, i) => {
+      const h = Math.round((v / maxVal) * 80);
+      return `<div class="hchart-col">
+        <div class="hchart-bar" style="height:${Math.max(h, v > 0 ? 8 : 0)}px">
+          ${v > 0 ? `<span class="hchart-val">${v}</span>` : ''}
+        </div>
+        <span class="hchart-month">${MONTHS_SHORT[i]}</span>
+      </div>`;
+    }).join('');
+
+    // Category breakdown
+    const catCount = {};
+    growing.forEach(p => {
+      const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+      const cat = p.category || dbP?.category || 'autre';
+      catCount[cat] = (catCount[cat] || 0) + 1;
+    });
+
+    const badges = BadgeSystem.getAll();
+    const unlockedCount = badges.filter(b => b.unlocked).length;
+
+    return `
+      <div class="stats-full-grid">
+        <div class="stats-full-card">
+          <span class="stats-full-num">${growing.length}</span>
+          <span class="stats-full-lbl">Plantes actives</span>
+        </div>
+        <div class="stats-full-card">
+          <span class="stats-full-num">${plants.length}</span>
+          <span class="stats-full-lbl">Total saison</span>
+        </div>
+        <div class="stats-full-card">
+          <span class="stats-full-num">${notes.length}</span>
+          <span class="stats-full-lbl">Notes journal</span>
+        </div>
+        <div class="stats-full-card">
+          <span class="stats-full-num">${harvests.length}</span>
+          <span class="stats-full-lbl">Récoltes</span>
+        </div>
+      </div>
+
+      <div class="card mb-12">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🧺 Récoltes ${year}</h3>
+        <div class="harvest-chart-wrap">
+          <div class="hchart">${chartHTML}</div>
+        </div>
+        ${harvests.length === 0 ? '<p style="font-size:13px;color:var(--text-light);text-align:center;margin-top:8px">Aucune récolte enregistrée pour l\'instant</p>' : ''}
+      </div>
+
+      <div class="card mb-12">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:12px">🌱 Par catégorie</h3>
+        ${Object.entries(catCount).map(([cat, n]) => {
+          const c = CATEGORIES[cat] || { label: cat, emoji: '🌿', color: '#95d5b2' };
+          const pct = Math.round((n / growing.length) * 100);
+          return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:18px">${c.emoji}</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;margin-bottom:3px">${c.label} <span style="color:var(--text-light);font-weight:400">(${n})</span></div>
+              <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${c.color};border-radius:3px;transition:width 0.5s"></div>
+              </div>
+            </div>
+            <span style="font-size:12px;color:var(--text-light);font-weight:700">${pct}%</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="card mb-12">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <h3 style="font-size:15px;font-weight:700">🏆 Succès (${unlockedCount}/${badges.length})</h3>
+        </div>
+        <div class="badges-grid">
+          ${badges.map(b => `
+            <div class="badge-card ${b.unlocked ? 'badge-rarity-' + b.rarity : 'locked'}" title="${b.desc}">
+              <span class="badge-emoji">${b.emoji}</span>
+              <span class="badge-label">${b.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <button class="btn btn-outline btn-full" id="btn-go-rotation" style="justify-content:center;gap:8px">
+        🔄 Guide rotation des cultures
+      </button>
+    `;
+  }
+
+  // ===== JOURNAL VIEW =====
+  async viewJournal() {
+    const plants = await db.getPlants();
+    const notes = await db.getAll('notes');
+    const harvests = await db.getAll('harvests');
+    const year = new Date().getFullYear();
+
+    const sortedNotes = [...notes].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+    const sortedHarvests = [...harvests].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const plantName = (id) => {
+      const p = plants.find(pl => pl.id === id);
+      const dbP = p ? PLANTS_DB.find(d => d.id === p.dbId) : null;
+      return p ? (p.customName || dbP?.name || '?') : '?';
+    };
+    const plantEmoji = (id) => {
+      const p = plants.find(pl => pl.id === id);
+      const dbP = p ? PLANTS_DB.find(d => d.id === p.dbId) : null;
+      return p ? (p.customEmoji || dbP?.emoji || '🌱') : '🌱';
+    };
+
+    const fmtDate = d => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+
+    return `
+      <div class="journal-section">
+        <div class="journal-section-title">🌱 Plantes cultivées en ${year} (${plants.filter(p=>p.status!=='removed').length})</div>
+        ${plants.filter(p => p.status !== 'removed').map(p => {
+          const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+          return `<div class="journal-entry">
+            <span>${p.customEmoji || dbP?.emoji || '🌱'} ${p.customName || dbP?.name || '?'}${p.variety ? ' · ' + p.variety : ''}</span>
+            <span class="journal-entry-date">${fmtDate(p.plantedAt || p.createdAt)}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="journal-section">
+        <div class="journal-section-title">📓 Dernières observations (${notes.length})</div>
+        ${sortedNotes.map(n => `
+          <div class="journal-entry">
+            <div>
+              <span style="font-weight:600">${plantEmoji(n.plantId)} ${plantName(n.plantId)}</span>
+              — ${n.text.slice(0, 80)}${n.text.length > 80 ? '…' : ''}
+              ${n.photo ? ' 📸' : ''}
+            </div>
+            <span class="journal-entry-date">${fmtDate(n.date)}</span>
+          </div>
+        `).join('')}
+        ${notes.length === 0 ? '<p style="font-size:13px;color:var(--text-light)">Aucune note pour l\'instant</p>' : ''}
+      </div>
+
+      <div class="journal-section">
+        <div class="journal-section-title">🧺 Récoltes (${harvests.length})</div>
+        ${sortedHarvests.map(h => `
+          <div class="journal-entry">
+            <span>${plantEmoji(h.plantId)} ${plantName(h.plantId)} — <strong>${h.quantity}</strong>${h.note ? ' · ' + h.note : ''}</span>
+            <span class="journal-entry-date">${fmtDate(h.date)}</span>
+          </div>
+        `).join('')}
+        ${harvests.length === 0 ? '<p style="font-size:13px;color:var(--text-light)">Aucune récolte enregistrée</p>' : ''}
+      </div>
+
+      <button class="share-btn" id="btn-share-journal">📤 Copier le résumé de saison</button>
+    `;
+  }
+
+  // ===== ROTATION VIEW =====
+  viewRotation() {
+    const familyZones = {};
+    GARDEN_ZONES.filter(z => z.type !== 'repos').forEach(zone => {
+      zone._familyHint && (familyZones[zone.id] = zone._familyHint);
+    });
+
+    return `
+      <p style="font-size:14px;color:var(--text-mid);margin-bottom:16px;line-height:1.5">
+        La rotation des cultures évite d'épuiser le sol et limite les maladies spécifiques à chaque famille botanique.
+      </p>
+      ${Object.entries(BOTANICAL_FAMILIES).map(([key, fam]) => `
+        <div class="rotation-family-card">
+          <div class="rotation-family-header">
+            <span style="font-size:20px">${fam.emoji}</span>
+            <span class="rotation-family-name">${fam.label}</span>
+            <span class="rotation-years-badge">⏱ ${fam.rotationYears} ans</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-mid);margin-bottom:8px">
+            ${fam.members.map(id => {
+              const p = PLANTS_DB.find(d => d.id === id);
+              return p ? `${p.emoji} ${p.name}` : id;
+            }).join(', ')}
+          </div>
+          <div style="font-size:12px;color:var(--text-light)">
+            ⚠️ Ne pas planter les ${fam.label} au même endroit avant <strong>${fam.rotationYears} ans</strong>.
+          </div>
+        </div>
+      `).join('')}
+
+      <div class="card" style="background:#fff9c4;border-color:#f9a825">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:8px">💡 Règle d'or pour ton jardin</h3>
+        <p style="font-size:13px;color:#7b4f00;line-height:1.5">
+          Tes buttes B1→B3 font chacune 1m². En 2026 : B2 = Solanacées (tomates).
+          En 2027, mets les Cucurbitacées (courgettes) en B2 et les Solanacées en B3.
+          Après 4 ans, le cycle est complet et le sol est régénéré.
+        </p>
+      </div>
+    `;
+  }
+
+  // ===== QUICK NOTE MODAL =====
+  async showQuickNoteModal() {
+    const plants = await db.getPlants();
+    const growing = plants.filter(p => p.status !== 'removed');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">✏️ Note rapide</div>
+
+        <div class="quick-note-plant-list" id="qn-plant-list">
+          <div class="quick-note-plant-item ${this._qnSelectedPlant === null ? 'selected' : ''}" data-plant-id="null">
+            🌿 Note générale (sans plante)
+          </div>
+          ${growing.map(p => {
+            const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+            const emoji = p.customEmoji || dbP?.emoji || '🌱';
+            const name = p.customName || dbP?.name || 'Plante';
+            return `<div class="quick-note-plant-item" data-plant-id="${p.id}">
+              <span style="font-size:22px">${emoji}</span>
+              <span>${name}${p.variety ? ' — ' + p.variety : ''}</span>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="qn-type">
+            <option value="note">📝 Observation</option>
+            <option value="harvest">🧺 Récolte</option>
+            <option value="problem">⚠️ Problème</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <textarea class="form-textarea" id="qn-text" placeholder="Votre observation…" style="min-height:100px"></textarea>
+          <label class="photo-input-label" for="qn-photo">📷 Ajouter une photo</label>
+          <input type="file" id="qn-photo" accept="image/*" capture="environment" style="display:none">
+          <img id="qn-preview" style="display:none;width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-top:8px">
+        </div>
+        <button class="btn btn-primary btn-full" id="qn-save">Enregistrer</button>
+      </div>`;
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    let selectedPlantId = null;
+    overlay.querySelectorAll('.quick-note-plant-item').forEach(item => {
+      item.addEventListener('click', () => {
+        overlay.querySelectorAll('.quick-note-plant-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        selectedPlantId = item.dataset.plantId === 'null' ? null : parseInt(item.dataset.plantId);
+      });
+    });
+
+    // Photo preview
+    const photoInput = overlay.querySelector('#qn-photo');
+    const preview = overlay.querySelector('#qn-preview');
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(file);
+    });
+
+    overlay.querySelector('#qn-save').addEventListener('click', async () => {
+      const text = overlay.querySelector('#qn-text').value.trim();
+      const type = overlay.querySelector('#qn-type').value;
+      if (!text) { overlay.querySelector('#qn-text').focus(); return; }
+
+      const photoSrc = preview.style.display !== 'none' ? preview.src : null;
+
+      if (selectedPlantId !== null) {
+        await db.add('notes', { plantId: selectedPlantId, text, type, photo: photoSrc, date: new Date().toISOString() });
+      } else {
+        // General note — store with plantId = 0 (general)
+        await db.add('notes', { plantId: 0, text, type, photo: photoSrc, date: new Date().toISOString() });
+      }
+      overlay.remove();
+      this.checkBadges();
+      // Refresh current view if on home
+      if (this.state.view === 'home') this.navigate('home');
+    });
   }
 
   ficheHTML(p, userPlant = null) {
@@ -753,6 +1156,10 @@ class PotagerApp {
             <input class="form-input" id="plant-location" placeholder="Ex: Carré A, Serre, Bac nord…" type="text">
           </div>
           <div class="form-group">
+            <label class="form-label">Nombre de godets / plants</label>
+            <input class="form-input" id="plant-qty" type="number" min="1" value="1" style="max-width:120px">
+          </div>
+          <div class="form-group">
             <label class="form-label">Lien fiche Kokopelli (optionnel)</label>
             <input class="form-input" id="plant-koko-url" type="url"
               placeholder="https://www.kokopelli-semences.fr/fr/p/…"
@@ -816,9 +1223,18 @@ class PotagerApp {
       on('home-moon-btn', 'click', () => this.navigate('moon'));
       on('home-see-all', 'click', () => this.navigate('plants'));
       on('home-add-plant', 'click', () => this.navigate('add-plant'));
+      on('btn-enable-notif', 'click', () => this.requestNotifications());
+      on('btn-go-stats', 'click', () => this.navigate('stats'));
+      on('btn-go-journal', 'click', () => this.navigate('journal'));
+      on('fab-quick-note', 'click', () => this.showQuickNoteModal());
       // Reminder clicks → plant detail
       document.querySelectorAll('#reminders-list .reminder-item').forEach(item => {
         item.addEventListener('click', () => this.navigate('plant-detail', { id: parseInt(item.dataset.plantId) }));
+      });
+      // Async weather inject
+      Weather.fetch().then(data => {
+        const widget = document.getElementById('weather-widget');
+        if (widget) widget.outerHTML = Weather.render(data);
       });
     }
 
@@ -883,6 +1299,32 @@ class PotagerApp {
         });
       });
 
+      // Status stepper clicks
+      document.querySelectorAll('#status-stepper .status-step').forEach(step => {
+        step.addEventListener('click', async () => {
+          const plantId = parseInt(step.dataset.plantId);
+          const newStatus = step.dataset.status;
+          const plant = await db.getPlant(plantId);
+          if (!plant) return;
+          plant.growthStatus = newStatus;
+          await db.updatePlant(plant);
+          // Re-render stepper in place
+          const stepper = document.getElementById('status-stepper');
+          if (stepper) stepper.outerHTML = this.statusStepperHTML(plant);
+          // Re-attach
+          document.querySelectorAll('#status-stepper .status-step').forEach(s2 => {
+            s2.addEventListener('click', async () => {
+              const p2 = await db.getPlant(parseInt(s2.dataset.plantId));
+              if (!p2) return;
+              p2.growthStatus = s2.dataset.status;
+              await db.updatePlant(p2);
+              this.navigate('plant-detail', { id: plantId });
+            });
+          });
+          this.checkBadges();
+        });
+      });
+
       // Delete note
       document.querySelectorAll('[data-note-id]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -908,6 +1350,36 @@ class PotagerApp {
           el.classList.add('selected');
           this.showZoneDetail(el.dataset.zoneId);
         });
+      });
+    }
+
+    if (view === 'stats') {
+      on('btn-go-rotation', 'click', () => this.navigate('rotation'));
+    }
+
+    if (view === 'journal') {
+      on('btn-share-journal', 'click', async () => {
+        const plants = await db.getPlants();
+        const harvests = await db.getAll('harvests');
+        const notes = await db.getAll('notes');
+        const growing = plants.filter(p => p.status !== 'removed');
+        const lines = [
+          `🌱 Mon Potager — Saison ${new Date().getFullYear()}`,
+          ``,
+          `${growing.length} variétés cultivées · ${harvests.length} récoltes · ${notes.length} observations`,
+          ``,
+          ...growing.map(p => {
+            const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+            return `${p.customEmoji || dbP?.emoji || '🌱'} ${p.customName || dbP?.name || '?'}${p.variety ? ' — ' + p.variety : ''}`;
+          })
+        ];
+        const text = lines.join('\n');
+        if (navigator.share) {
+          navigator.share({ title: 'Mon Potager', text }).catch(() => {});
+        } else {
+          navigator.clipboard?.writeText(text);
+          alert('Résumé copié dans le presse-papier !');
+        }
       });
     }
 
@@ -1054,6 +1526,7 @@ class PotagerApp {
         const plantedAt = $('plant-date')?.value || new Date().toISOString().split('T')[0];
         const location = $('plant-location')?.value.trim();
         const noteText = $('plant-note')?.value.trim();
+        const quantity = parseInt($('plant-qty')?.value) || 1;
 
         let plantData;
 
@@ -1068,15 +1541,16 @@ class PotagerApp {
             customEmoji: $('custom-emoji')?.value.trim() || '🌿',
             category: $('custom-cat')?.value || 'legume-feuille',
             description: $('custom-desc')?.value.trim(),
-            variety, plantedAt, location, kokoUrl
+            variety, plantedAt, location, kokoUrl, quantity
           };
         } else {
           if (!this.selectedDbPlant) { alert('Veuillez sélectionner une plante.'); return; }
-          plantData = { dbId: this.selectedDbPlant.id, variety, plantedAt, location, kokoUrl };
+          plantData = { dbId: this.selectedDbPlant.id, variety, plantedAt, location, kokoUrl, quantity };
         }
 
         const plantId = await db.addPlant(plantData);
         if (noteText) await db.addNote(plantId, noteText, 'note');
+        this.checkBadges();
         this.navigate('plants');
       });
     }

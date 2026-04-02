@@ -1,4 +1,4 @@
-const CACHE_NAME = 'potager-v1';
+const CACHE_NAME = 'potager-v2';
 const ASSETS = [
   './index.html',
   './style.css',
@@ -6,6 +6,8 @@ const ASSETS = [
   './db.js',
   './moon.js',
   './plants-data.js',
+  './weather.js',
+  './badges.js',
   './manifest.json',
   './icon.svg'
 ];

@@ -654,6 +654,39 @@ const PLANTS_DB = [
   }
 ];
 
+// ===== Statuts de croissance =====
+const PLANT_STATUS = {
+  semis:          { label: 'Semis / Godets',  emoji: '🌱', color: '#e8f5e9', textColor: '#2e7d32', next: 'croissance' },
+  croissance:     { label: 'En croissance',   emoji: '🌿', color: '#c8e6c9', textColor: '#1b5e20', next: 'floraison'  },
+  floraison:      { label: 'En fleurs',       emoji: '🌸', color: '#fce4ec', textColor: '#880e4f', next: 'recolte'   },
+  fructification: { label: 'Fructification',  emoji: '🍅', color: '#fbe9e7', textColor: '#bf360c', next: 'recolte'   },
+  recolte:        { label: 'En récolte',      emoji: '🧺', color: '#fff9c4', textColor: '#f57f17', next: 'termine'   },
+  termine:        { label: 'Terminé',         emoji: '💤', color: '#eeeeee', textColor: '#757575', next: null        },
+  growing:        { label: 'En croissance',   emoji: '🌿', color: '#c8e6c9', textColor: '#1b5e20', next: 'floraison' }, // compat
+};
+
+// ===== Familles botaniques (pour la rotation des cultures) =====
+const BOTANICAL_FAMILIES = {
+  solanacees:    { label: 'Solanacées',    emoji: '🍅', color: '#ffcdd2', rotationYears: 4, members: ['tomate','poivron','aubergine','pomme-de-terre','tabac'] },
+  cucurbitacees: { label: 'Cucurbitacées', emoji: '🥒', color: '#dcedc8', rotationYears: 3, members: ['courgette','concombre'] },
+  apiacees:      { label: 'Apiacées',      emoji: '🥕', color: '#fff9c4', rotationYears: 3, members: ['carotte','persil','ciboulette'] },
+  asteracees:    { label: 'Astéracées',    emoji: '🌼', color: '#f3e5f5', rotationYears: 2, members: ['salade','tagete'] },
+  fabacees:      { label: 'Fabacées',      emoji: '🫘', color: '#e8f5e9', rotationYears: 3, members: ['haricot'] },
+  brassicacees:  { label: 'Brassicacées',  emoji: '🥬', color: '#e0f2f1', rotationYears: 3, members: ['radis'] },
+  alliacees:     { label: 'Alliacées',     emoji: '🧅', color: '#e8eaf6', rotationYears: 2, members: ['oignon','ail'] },
+  lamiacees:     { label: 'Lamiacées',     emoji: '🌿', color: '#e8f5e9', rotationYears: 2, members: ['basilic','menthe'] },
+  chenopodiacees:{ label: 'Chénopodiacées',emoji: '🥬', color: '#fce4ec', rotationYears: 2, members: ['epinard','betterave'] },
+  rosacees:      { label: 'Rosacées',      emoji: '🍓', color: '#fce4ec', rotationYears: 3, members: ['fraise'] },
+  tropaeolacees: { label: 'Tropéolacées',  emoji: '🌸', color: '#fff8e1', rotationYears: 1, members: ['capucine'] },
+  boraginacees:  { label: 'Boraginacées',  emoji: '💙', color: '#e3f2fd', rotationYears: 1, members: ['bourrache'] },
+};
+
+// Build reverse map: plantId → family key
+const PLANT_FAMILY = {};
+Object.entries(BOTANICAL_FAMILIES).forEach(([key, fam]) =>
+  fam.members.forEach(id => { PLANT_FAMILY[id] = key; })
+);
+
 // ===== Plan du jardin — Saint-Thélo, 22460 =====
 // Les zones sont listées du Nord au Sud.
 // mSize = profondeur en mètres dans l'axe N-S.
