@@ -255,8 +255,12 @@ class PotagerApp {
     const catColor = CATEGORIES[cat] ? CATEGORIES[cat].color : '#52b788';
     const date = new Date(plant.plantedAt || plant.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
+    const qty = plant.quantity && plant.quantity > 1
+      ? `<span style="position:absolute;top:8px;left:8px;background:var(--primary);color:white;font-size:10px;font-weight:800;padding:2px 6px;border-radius:10px">×${plant.quantity}</span>`
+      : '';
     return `
       <div class="plant-card" data-plant-id="${plant.id}">
+        ${qty}
         <div class="plant-card-cat" style="background:${catColor}"></div>
         <span class="plant-card-emoji">${emoji}</span>
         <div class="plant-card-name">${name}</div>
@@ -349,6 +353,7 @@ class PotagerApp {
         <span class="plant-hero-emoji">${emoji}</span>
         <div class="plant-hero-name">${name}</div>
         ${plant.variety ? `<div class="plant-hero-variety">${plant.variety}</div>` : ''}
+        ${plant.quantity && plant.quantity > 1 ? `<div style="margin-bottom:4px"><span style="background:var(--primary);color:white;font-size:12px;font-weight:800;padding:3px 10px;border-radius:12px">×${plant.quantity} godets</span></div>` : ''}
         <div class="plant-hero-date">Planté le ${date}</div>
         ${plant.location ? `<div class="plant-hero-date">📍 ${plant.location}</div>` : ''}
       </div>
@@ -1302,15 +1307,14 @@ class PotagerApp {
         if (!cb?.checked) continue;
         const b = BATCH[i];
         const dbP = PLANTS_DB.find(p => p.id === b.dbId);
-        for (let g = 0; g < b.qty; g++) {
-          await db.addPlant({
-            dbId: b.dbId,
-            variety: b.variety,
-            plantedAt: '2026-04-02',
-            location: b.location,
-            status: 'growing'
-          });
-        }
+        await db.addPlant({
+          dbId: b.dbId,
+          variety: b.variety,
+          plantedAt: '2026-04-02',
+          location: b.location,
+          status: 'growing',
+          quantity: b.qty
+        });
         if (b.note) {
           // Add note to the first plant added — simplified
         }
