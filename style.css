@@ -141,7 +141,7 @@ img { max-width: 100%; }
   position: relative;
 }
 .nav-btn .nav-icon { font-size: 22px; line-height: 1; }
-.nav-btn .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
+.nav-btn .nav-label { font-size: 9px; font-weight: 600; letter-spacing: 0.01em; }
 .nav-btn.active { color: var(--primary); }
 .nav-btn.active::before {
   content: '';
@@ -829,6 +829,213 @@ img { max-width: 100%; }
 .mb-12 { margin-bottom: 12px; }
 .text-center { text-align: center; }
 .text-danger { color: var(--danger); }
+
+/* ===== Garden Plan View ===== */
+.garden-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.garden-meta-item {
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  padding: 10px;
+  text-align: center;
+}
+.garden-meta-val { display: block; font-size: 15px; font-weight: 800; color: var(--primary); }
+.garden-meta-lbl { display: block; font-size: 10px; color: var(--text-light); font-weight: 600; margin-top: 2px; }
+
+.garden-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.gleg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mid);
+}
+.gleg-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Plan wrapper */
+.garden-plan-wrap {
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.garden-plan-compass {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--secondary);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Each row in the plan = zone or allée */
+.gplan-row {
+  display: flex;
+  align-items: stretch;
+}
+
+/* Brise-vent strip (west) */
+.gplan-brise {
+  width: 28px;
+  flex-shrink: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    #a5d6a7,
+    #a5d6a7 3px,
+    #c8e6c9 3px,
+    #c8e6c9 8px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  writing-mode: vertical-rl;
+  color: #2e7d32;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* East path strip */
+.gplan-allee-e {
+  width: 18px;
+  flex-shrink: 0;
+  background: #d7ccc8;
+}
+
+/* Zone body (cultivation) */
+.gplan-zone {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: filter var(--transition);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  min-height: 44px;
+}
+.gplan-zone:active { filter: brightness(0.93); }
+.gplan-zone.selected { outline: 2.5px solid var(--primary); outline-offset: -2px; }
+
+.gplan-zone-emoji { font-size: 20px; flex-shrink: 0; }
+.gplan-zone-label { font-size: 13px; font-weight: 700; flex: 1; line-height: 1.3; }
+.gplan-zone-count {
+  font-size: 11px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Allée row */
+.gplan-allee-row {
+  display: flex;
+  align-items: stretch;
+}
+.gplan-allee-center {
+  flex: 1;
+  background: #d7ccc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #8d6e63;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* River row */
+.gplan-river {
+  background: #b3e5fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #01579b;
+  padding: 8px;
+  gap: 6px;
+}
+
+/* Zone detail panel */
+.zone-detail {
+  background: var(--surface);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 16px;
+  animation: slideUp 0.2s ease;
+}
+.zone-detail-title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.zone-detail-note {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+.zone-plants-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.zone-plant-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 13px;
+}
+.zone-plant-chip:active { background: var(--primary-bg); }
+.zone-empty { font-size: 13px; color: var(--text-light); font-style: italic; }
+
+/* Batch import */
+.batch-import-list { display: flex; flex-direction: column; gap: 8px; }
+.batch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+.batch-check {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.batch-info { flex: 1; }
+.batch-name { font-size: 14px; font-weight: 700; }
+.batch-dest { font-size: 12px; color: var(--text-light); }
 
 /* ===== Kokopelli Integration ===== */
 .koko-section {

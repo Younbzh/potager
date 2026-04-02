@@ -507,6 +507,122 @@ const PLANTS_DB = [
     }
   },
   {
+    id: 'capucine',
+    name: 'Capucine',
+    emoji: '🌸',
+    category: 'fleur-compagne',
+    description: 'Compagne indispensable du potager. Elle joue le rôle de plante-piège en attirant les pucerons loin des légumes. Ses fleurs et feuilles sont comestibles (saveur poivrée). Existe en naine et grimpante.',
+    varieties: ['Empress of India (naine écarlate)', 'Couleurs mélangées (grimpante)', 'Alaska (feuilles panachées)', 'Gleam (semi-grimpante)'],
+    planting: { months: [4, 5, 6], depth: 2, spacing: 25, method: 'Semis en godet ou direct après les gelées (sol à 10°C)' },
+    harvest: { months: [6, 7, 8, 9, 10], duration: '45-60 jours après semis' },
+    care: {
+      water: 'Peu — sol pauvre pour plus de fleurs',
+      sun: 'Plein soleil à mi-ombre',
+      soil: 'Pauvre à moyen — un sol trop riche donne des feuilles sans fleurs',
+      tips: [
+        'Sol pauvre = plus de fleurs : ne pas fertiliser',
+        'Plante-piège : laisser les pucerons s\'installer pour protéger les légumes voisins',
+        'Fleurs et feuilles comestibles, saveur poivrée',
+        'Se ressème spontanément d\'une année à l\'autre'
+      ]
+    },
+    biodynamic: 'fleur',
+    companions: ['Tomate', 'Courgette', 'Haricot', 'Chou', 'Concombre'],
+    avoid: [],
+    kokopelli: {
+      search: 'capucine',
+      catalogPath: '/fr/c/semences-de-fleurs',
+      varietiesKoko: ['Empress of India', 'Fordhook Favorites', 'Gleam Salmon', 'Alaska']
+    }
+  },
+  {
+    id: 'tagete',
+    name: 'Tagète / Souci d\'Inde',
+    emoji: '🌼',
+    category: 'fleur-compagne',
+    description: 'L\'une des meilleures plantes compagnes du potager. Ses racines sécrètent une substance toxique pour les nématodes, et son parfum fort repousse pucerons et mouches blanches. Indispensable au pied des tomates.',
+    varieties: ['Double Pinwheel', 'Nain Double Mixed', 'Safari Series', 'Boy Series', 'Strawberry Blonde'],
+    planting: { months: [3, 4, 5], depth: 0.5, spacing: 20, method: 'Semis intérieur mars-avril, repiquer après les gelées' },
+    harvest: { months: [6, 7, 8, 9, 10], duration: 'Floraison continue de juin jusqu\'aux gelées' },
+    care: {
+      water: 'Modéré, résistant à la sécheresse',
+      sun: 'Plein soleil',
+      soil: 'Tous types, même pauvre',
+      tips: [
+        'Planter en bordure ET au pied des tomates',
+        'Ses racines détruisent les nématodes du sol sur 2-3 ans',
+        'Supprimer les fleurs fanées pour prolonger la floraison',
+        'Laisser sécher quelques fleurs pour récupérer les graines'
+      ]
+    },
+    biodynamic: 'fleur',
+    companions: ['Tomate', 'Poivron', 'Aubergine', 'Concombre', 'Chou'],
+    avoid: ['Haricot'],
+    kokopelli: {
+      search: 'tagète souci inde',
+      catalogPath: '/fr/c/semences-de-fleurs',
+      varietiesKoko: ['Œillet d\'Inde nain', 'Tagète érigée']
+    }
+  },
+  {
+    id: 'bourrache',
+    name: 'Bourrache Bleue',
+    emoji: '💙',
+    category: 'fleur-compagne',
+    description: 'Plante mellifère exceptionnelle — les abeilles l\'adorent. Elle améliore la pollinisation de tout le potager, repousse le ver du chou et enrichit le sol. Fleurs et jeunes feuilles comestibles (goût concombre).',
+    varieties: ['Bleue officinale', 'Blanche (officinalis alba)'],
+    planting: { months: [3, 4, 5, 6], depth: 1, spacing: 30, method: 'Semis direct — ne supporte pas le repiquage' },
+    harvest: { months: [6, 7, 8, 9, 10], duration: '50-60 jours après semis' },
+    care: {
+      water: 'Peu une fois établie — résistante à la sécheresse',
+      sun: 'Plein soleil à mi-ombre',
+      soil: 'Tous types, même pauvre et sec',
+      tips: [
+        'Se ressème spontanément chaque année',
+        'Fleurs et jeunes feuilles comestibles — saveur concombre',
+        'Attire fortement les abeilles : essentielle pour la pollinisation',
+        'Améliore la croissance des fraises et tomates à proximité'
+      ]
+    },
+    biodynamic: 'fleur',
+    companions: ['Tomate', 'Fraise', 'Courgette', 'Chou'],
+    avoid: [],
+    kokopelli: {
+      search: 'bourrache bleue',
+      catalogPath: '/fr/c/semences-de-fleurs',
+      varietiesKoko: ['Bourrache bleue officinale', 'Bourrache blanche']
+    }
+  },
+  {
+    id: 'tabac',
+    name: 'Tabac d\'ornement',
+    emoji: '🌺',
+    category: 'fleur-compagne',
+    description: 'Le tabac d\'ornement (Nicotiana sylvestris "Ghost Pipes") attire les pollinisateurs nocturnes grâce à ses fleurs blanches parfumées le soir. Ses poils glanduleux piègent les insectes nuisibles. Très décoratif.',
+    varieties: ['Ghost Pipes (sylvestris)', 'Sensation Mixed', 'Lime Green', 'Perfume Deep Purple'],
+    planting: { months: [3, 4, 5], depth: 0, spacing: 40, method: 'Semis intérieur (graines très fines, ne pas couvrir — lumière nécessaire à la germination)' },
+    harvest: { months: [7, 8, 9, 10], duration: 'Floraison juillet → gelées' },
+    care: {
+      water: 'Régulier sans excès',
+      sun: 'Soleil à mi-ombre',
+      soil: 'Riche, frais, bien drainé',
+      tips: [
+        'Graines microscopiques : semer en surface sans couvrir',
+        'Lumière nécessaire à la germination (ne pas enterrer)',
+        'Les poils glanduleux des tiges capturent mouches blanches et pucerons',
+        '⚠️ Toutes les parties sont toxiques si ingérées — tenir hors de portée des enfants'
+      ]
+    },
+    biodynamic: 'fleur',
+    companions: ['Tomate', 'Courgette', 'Poivron'],
+    avoid: [],
+    kokopelli: {
+      search: 'nicotiana tabac ornemental',
+      catalogPath: '/fr/c/semences-de-fleurs',
+      varietiesKoko: ['Nicotiana sylvestris', 'Nicotiana alata']
+    }
+  },
+  {
     id: 'betterave',
     name: 'Betterave',
     emoji: '🟣',
@@ -538,7 +654,24 @@ const PLANTS_DB = [
   }
 ];
 
-// Enrichissement Kokopelli : on injecte les données après définition du tableau
+// ===== Plan du jardin — Saint-Thélo, 22460 =====
+// Les zones sont listées du Nord au Sud.
+// mSize = profondeur en mètres dans l'axe N-S.
+// L'allée de 90 cm entre chaque zone est gérée dans le rendu.
+const GARDEN_ZONES = [
+  { id: 'fraises',  label: 'Bande Fraises',          emoji: '🍓', type: 'perennis', mSize: 1,   color: '#ffcdd2', note: '1 m depuis la haie Nord' },
+  { id: 'B1',       label: 'B1 — CBD',               emoji: '🌿', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Hügelkultur — variétés Weedy en attente' },
+  { id: 'B2',       label: 'B2 — Tomates',           emoji: '🍅', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Tomates + Basilic + Tagètes + Tabac intercalé B2/B3' },
+  { id: 'B3',       label: 'B3 — Courgettes',        emoji: '🥒', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Courgettes + Courge' },
+  { id: 'B4',       label: 'B4 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
+  { id: 'B5',       label: 'B5 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
+  { id: 'B6',       label: 'B6 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — fumier poules automne' },
+  { id: 'P1',       label: 'P1 — Carottes / Oignons',emoji: '🥕', type: 'flat',    mSize: 1,   color: '#fff9c4', note: 'No-dig carton-paille' },
+  { id: 'P2',       label: 'P2 — Pois / Haricots',  emoji: '🫘', type: 'flat',    mSize: 1,   color: '#fff9c4', note: 'Succession : pois printemps → haricots été' },
+  { id: 'melons',   label: 'Melons + PDT',           emoji: '🍈', type: 'flat',    mSize: 1.9, color: '#fff9c4', note: 'Zone large ~1,9 m — melons + pommes de terre' },
+];
+
+// ===== Enrichissement Kokopelli : on injecte les données après définition du tableau
 // pour ne pas alourdir chaque entrée individuelle.
 const KOKOPELLI_DATA = {
   'carotte': {
@@ -637,11 +770,12 @@ PLANTS_DB.forEach(p => {
 });
 
 const CATEGORIES = {
-  'legume-fruit': { label: 'Légumes-fruits', emoji: '🍅', color: '#e76f51' },
+  'legume-fruit':   { label: 'Légumes-fruits',   emoji: '🍅', color: '#e76f51' },
   'legume-feuille': { label: 'Légumes-feuilles', emoji: '🥬', color: '#52b788' },
-  'legume-racine': { label: 'Légumes-racines', emoji: '🥕', color: '#e9c46a' },
-  'aromatique': { label: 'Aromatiques', emoji: '🌿', color: '#74c69d' },
-  'fruit': { label: 'Fruits', emoji: '🍓', color: '#e63946' }
+  'legume-racine':  { label: 'Légumes-racines',  emoji: '🥕', color: '#e9c46a' },
+  'aromatique':     { label: 'Aromatiques',      emoji: '🌿', color: '#74c69d' },
+  'fruit':          { label: 'Fruits',           emoji: '🍓', color: '#e63946' },
+  'fleur-compagne': { label: 'Fleurs compagnes', emoji: '🌸', color: '#f06292' }
 };
 
 const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',

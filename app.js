@@ -37,7 +37,7 @@ class PotagerApp {
       b.classList.toggle('active', b.dataset.view === view);
     });
 
-    const navViews = ['home', 'plants', 'calendar', 'moon'];
+    const navViews = ['home', 'plants', 'calendar', 'moon', 'garden'];
     const showNav = navViews.includes(view);
     document.getElementById('app-nav').style.display = showNav ? 'flex' : 'none';
 
@@ -55,6 +55,7 @@ class PotagerApp {
       case 'plants':   this.renderHeader(header, 'Mes Plantes', false); main.innerHTML = await this.viewPlants(); break;
       case 'calendar': this.renderHeader(header, 'Calendrier', false); main.innerHTML = this.viewCalendar(); break;
       case 'moon':     this.renderHeader(header, 'Lune & Biodynamie', false); main.innerHTML = this.viewMoon(); break;
+      case 'garden':   this.renderHeader(header, 'Plan du Jardin', false); main.innerHTML = await this.viewGarden(); break;
       case 'plant-detail': this.renderHeader(header, '', true); main.innerHTML = await this.viewPlantDetail(params.id); break;
       case 'add-plant': this.renderHeader(header, 'Ajouter une plante', true); main.innerHTML = this.viewAddPlant(); break;
       case 'add-note': this.renderHeader(header, 'Ajouter une note', true); main.innerHTML = this.viewAddNote(params.plantId); break;
@@ -789,6 +790,17 @@ class PotagerApp {
       });
     }
 
+    if (view === 'garden') {
+      on('btn-open-batch', 'click', () => this.showBatchImportModal());
+      document.querySelectorAll('.gplan-zone[data-zone-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          document.querySelectorAll('.gplan-zone').forEach(z => z.classList.remove('selected'));
+          el.classList.add('selected');
+          this.showZoneDetail(el.dataset.zoneId);
+        });
+      });
+    }
+
     if (view === 'calendar') {
       on('cal-prev', 'click', () => {
         this.state.calMonth--;
@@ -828,6 +840,13 @@ class PotagerApp {
     if (view === 'add-plant') {
       this.selectedDbPlant = null;
       this.isCustomPlant = false;
+
+      // Pre-fill location if coming from a garden zone
+      if (this._prefillLocation) {
+        const locInput = $('plant-location');
+        if (locInput) locInput.value = this._prefillLocation;
+        this._prefillLocation = null;
+      }
 
       // Pre-fill if coming from a succession "Planifier" button
       if (this._successionPrefill) {
@@ -948,6 +967,228 @@ class PotagerApp {
         this.navigate('plant-detail', { id: plantId });
       });
     }
+  }
+
+  // ===== GARDEN PLAN VIEW =====
+
+  async viewGarden() {
+    const plants = await db.getPlants();
+    const growing = plants.filter(p => p.status === 'growing');
+
+    // Count plants per zone (match location field containing zone ID)
+    const countByZone = {};
+    const plantsByZone = {};
+    GARDEN_ZONES.forEach(z => { countByZone[z.id] = 0; plantsByZone[z.id] = []; });
+    growing.forEach(p => {
+      const loc = (p.location || '').toUpperCase();
+      GARDEN_ZONES.forEach(z => {
+        if (loc.includes(z.id.toUpperCase())) {
+          countByZone[z.id]++;
+          plantsByZone[z.id].push(p);
+        }
+      });
+    });
+
+    const totalActive = GARDEN_ZONES.filter(z => z.type !== 'repos').length;
+    const totalPlants = growing.length;
+
+    // Build plan rows HTML
+    const SCALE = 44; // px per meter
+    const rowsHTML = GARDEN_ZONES.map((z, i) => {
+      const h = Math.max(44, Math.round(z.mSize * SCALE));
+      const count = countByZone[z.id];
+      const isRest = z.type === 'repos';
+      const alleeHTML = i < GARDEN_ZONES.length - 1 ? `
+        <div class="gplan-allee-row" style="height:25px">
+          <div class="gplan-brise" style="width:28px;background:#b0bec5"></div>
+          <div class="gplan-allee-center">— allée 90 cm —</div>
+          <div class="gplan-allee-e"></div>
+        </div>` : '';
+
+      return `
+        <div class="gplan-row" style="height:${h}px">
+          <div class="gplan-brise" style="${i===0?'':''}">🌿</div>
+          <div class="gplan-zone ${isRest ? 'opacity-50' : ''}" data-zone-id="${z.id}"
+               style="background:${z.color};${isRest?'opacity:0.6':''}">
+            <span class="gplan-zone-emoji">${z.emoji}</span>
+            <span class="gplan-zone-label">${z.label}</span>
+            ${count > 0 ? `<span class="gplan-zone-count">${count}</span>` : ''}
+          </div>
+          <div class="gplan-allee-e"></div>
+        </div>
+        ${alleeHTML}
+      `;
+    }).join('');
+
+    const hasBatchToImport = !localStorage.getItem('semis-20260402-imported');
+
+    return `
+      ${hasBatchToImport ? `
+        <div class="card mb-12" style="border-color:#a5d6a7;background:#f1f8e9">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:20px">🌱</span>
+            <strong style="color:#2e7d32">Semis du 2 avril — prêts à enregistrer</strong>
+          </div>
+          <p style="font-size:13px;color:#388e3c;margin-bottom:10px;line-height:1.5">
+            7 lots en godets à enregistrer dans l\'app. Cliquez pour les ajouter tous d\'un coup.
+          </p>
+          <button class="btn btn-primary btn-sm" id="btn-open-batch" style="background:#388e3c">
+            Importer les semis du jour →
+          </button>
+        </div>
+      ` : ''}
+
+      <div class="garden-meta">
+        <div class="garden-meta-item">
+          <span class="garden-meta-val">100 m²</span>
+          <span class="garden-meta-lbl">Surface totale</span>
+        </div>
+        <div class="garden-meta-item">
+          <span class="garden-meta-val">${totalPlants}</span>
+          <span class="garden-meta-lbl">Plantes</span>
+        </div>
+        <div class="garden-meta-item">
+          <span class="garden-meta-val">${GARDEN_ZONES.filter(z=>z.type==='repos').length}</span>
+          <span class="garden-meta-lbl">En repos</span>
+        </div>
+      </div>
+
+      <div class="garden-legend">
+        <span class="gleg-item"><span class="gleg-swatch" style="background:#c8e6c9"></span>Butte Hügelkultur</span>
+        <span class="gleg-item"><span class="gleg-swatch" style="background:#fff9c4"></span>Terre plate no-dig</span>
+        <span class="gleg-item"><span class="gleg-swatch" style="background:#ffcdd2"></span>Fraises</span>
+        <span class="gleg-item"><span class="gleg-swatch" style="background:#eeeeee"></span>Repos 2026</span>
+      </div>
+
+      <div class="garden-plan-wrap">
+        <div class="garden-plan-compass">
+          <span>🧭 NORD — Haie</span>
+          <span style="font-size:10px;opacity:0.7">← 5 m →</span>
+          <span>Houblon ↔ Allée Est</span>
+        </div>
+        ${rowsHTML}
+        <div class="gplan-river" style="height:32px">
+          💧 RIVIÈRE — Rive non cultivée (1 m)
+        </div>
+      </div>
+
+      <div id="zone-detail-panel"></div>
+    `;
+  }
+
+  async showZoneDetail(zoneId, plantsByZone) {
+    const zone = GARDEN_ZONES.find(z => z.id === zoneId);
+    if (!zone) return;
+    const plants = await db.getPlants();
+    const growing = plants.filter(p => p.status === 'growing');
+    const zonePlants = growing.filter(p => (p.location || '').toUpperCase().includes(zoneId.toUpperCase()));
+
+    const panel = document.getElementById('zone-detail-panel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="zone-detail">
+        <div class="zone-detail-title">${zone.emoji} ${zone.label}</div>
+        <div class="zone-detail-note">${zone.note}</div>
+        ${zonePlants.length > 0 ? `
+          <div class="zone-plants-grid">
+            ${zonePlants.map(p => {
+              const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+              const emoji = p.customEmoji || (dbP?.emoji || '🌱');
+              const name = p.customName || (dbP?.name || 'Plante');
+              return `<div class="zone-plant-chip" data-plant-id="${p.id}">
+                <span>${emoji}</span><span>${name}${p.variety ? ' · ' + p.variety : ''}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <button class="btn btn-outline btn-sm mt-12" id="btn-add-to-zone" data-zone="${zoneId}">+ Ajouter une plante ici</button>
+        ` : `
+          <p class="zone-empty">Aucune plante enregistrée dans cette zone.</p>
+          <button class="btn btn-primary btn-sm mt-8" id="btn-add-to-zone" data-zone="${zoneId}">+ Ajouter une plante</button>
+        `}
+      </div>
+    `;
+    panel.querySelectorAll('.zone-plant-chip[data-plant-id]').forEach(c => {
+      c.addEventListener('click', () => this.navigate('plant-detail', { id: parseInt(c.dataset.plantId) }));
+    });
+    const addBtn = document.getElementById('btn-add-to-zone');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        this._prefillLocation = zoneId;
+        this.navigate('add-plant');
+      });
+    }
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  showBatchImportModal() {
+    // Today's plantings — Saint-Thélo, 2 avril 2026
+    const BATCH = [
+      { dbId: 'basilic',   variety: 'Grand vert',         qty: 4, location: 'B2',       note: 'En godets — entre les tomates' },
+      { dbId: 'capucine',  variety: 'Empress of India',   qty: 4, location: 'bordures',  note: 'Naine — bordure de toutes les planches' },
+      { dbId: 'capucine',  variety: 'Couleurs mélangées', qty: 4, location: 'piquet Ouest', note: 'Grimpante — piquet côté Ouest' },
+      { dbId: 'tagete',    variety: 'Double Pinwheel',    qty: 4, location: 'B2',        note: 'Au pied des tomates en B2' },
+      { dbId: 'bourrache', variety: 'Bleue',              qty: 4, location: 'bordures',  note: 'Bordure de toutes les planches' },
+      { dbId: 'salade',    variety: 'Buttercrunch',       qty: 3, location: 'terre-plate', note: 'Espaces libres zone terre plate' },
+      { dbId: 'tabac',     variety: 'Ghost Pipes',        qty: 3, location: 'B2-B3',     note: 'Intercalé entre B2 et B3' },
+    ];
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'batch-modal';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">🌱 Semis du 2 avril 2026</div>
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:14px;line-height:1.5">
+          Cochez les godets à enregistrer. Date de semis : 02/04/2026.
+        </p>
+        <div class="batch-import-list" id="batch-list">
+          ${BATCH.map((b, i) => {
+            const dbP = PLANTS_DB.find(p => p.id === b.dbId);
+            return `
+              <div class="batch-item">
+                <input type="checkbox" class="batch-check" id="bc-${i}" checked>
+                <div class="batch-info">
+                  <div class="batch-name">${dbP?.emoji || '🌱'} ${dbP?.name || b.dbId} — ${b.variety} <span style="color:var(--text-light);font-weight:400">(×${b.qty})</span></div>
+                  <div class="batch-dest">📍 ${b.location} · ${b.note}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <button class="btn btn-primary btn-full mt-12" id="btn-confirm-batch">Enregistrer les godets cochés</button>
+      </div>
+    `;
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    document.getElementById('btn-confirm-batch').addEventListener('click', async () => {
+      let count = 0;
+      for (let i = 0; i < BATCH.length; i++) {
+        const cb = document.getElementById(`bc-${i}`);
+        if (!cb?.checked) continue;
+        const b = BATCH[i];
+        const dbP = PLANTS_DB.find(p => p.id === b.dbId);
+        for (let g = 0; g < b.qty; g++) {
+          await db.addPlant({
+            dbId: b.dbId,
+            variety: b.variety,
+            plantedAt: '2026-04-02',
+            location: b.location,
+            status: 'growing'
+          });
+        }
+        if (b.note) {
+          // Add note to the first plant added — simplified
+        }
+        count += b.qty;
+      }
+      localStorage.setItem('semis-20260402-imported', '1');
+      overlay.remove();
+      alert(`✅ ${count} godets enregistrés !`);
+      this.navigate('garden');
+    });
   }
 
   // ===== KOKOPELLI =====
