@@ -12,8 +12,82 @@ class PotagerApp {
   async init() {
     await db.init();
     this.setupNav();
-    this.navigate('home');
     this.registerSW();
+
+    // Handle Web Share Target — app opened with a shared Kokopelli URL
+    const shared = this.checkSharedUrl();
+    if (shared) {
+      this.navigate('add-plant');
+    } else {
+      this.navigate('home');
+    }
+  }
+
+  // Check if app was opened via Share Target (Kokopelli URL shared from browser)
+  checkSharedUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const sharedUrl = params.get('shared_url') || params.get('text') || '';
+    if (!sharedUrl || !sharedUrl.includes('kokopelli')) return null;
+
+    const parsed = this.parseKokopelliUrl(sharedUrl);
+    if (parsed) {
+      this._kokopelliImport = parsed;
+      // Clean the URL bar without reload
+      history.replaceState({}, '', './index.html');
+      return parsed;
+    }
+    return null;
+  }
+
+  // Parse a Kokopelli product URL to extract plant + variety
+  // e.g. /fr/p/tomate-marmande-lycopersicon-esculentum → { plant: <dbEntry>, variety: 'Marmande' }
+  parseKokopelliUrl(url) {
+    const match = url.match(/\/(?:fr|en)\/p\/([^/?#\s]+)/);
+    if (!match) return { plant: null, variety: '', url };
+
+    const slug = match[1];
+    const parts = slug.split('-');
+
+    // Latin name stopwords — marks end of French variety name
+    const LATIN = new Set([
+      'lycopersicon','solanum','daucus','lactuca','phaseolus','capsicum',
+      'brassica','allium','ocimum','petroselinum','borago','tagetes',
+      'tropaeolum','nicotiana','beta','cucumis','cucurbita','fragaria',
+      'raphanus','spinacia','mentha'
+    ]);
+
+    // Name aliases → PLANTS_DB id
+    const ALIAS = {
+      'tomate':'tomate','courgette':'courgette','carotte':'carotte',
+      'salade':'salade','laitue':'salade','mesclun':'salade',
+      'haricot':'haricot','poivron':'poivron','aubergine':'aubergine',
+      'radis':'radis','oignon':'oignon','ail':'ail','basilic':'basilic',
+      'persil':'persil','ciboulette':'ciboulette','menthe':'menthe',
+      'epinard':'epinard','fraise':'fraise','concombre':'concombre',
+      'betterave':'betterave','capucine':'capucine','tagete':'tagete',
+      'tagetes':'tagete','bourrache':'bourrache','tabac':'tabac',
+      'nicotiana':'tabac','pomme':'pomme-de-terre','piment':'poivron'
+    };
+
+    // Try matching first 1 or 2 parts as plant name
+    let matchedPlant = null;
+    let varietyStart = 1;
+    for (let i = Math.min(2, parts.length); i >= 1; i--) {
+      const candidate = parts.slice(0, i).join('-');
+      const dbId = ALIAS[candidate];
+      const plant = dbId ? PLANTS_DB.find(p => p.id === dbId) : null;
+      if (plant) { matchedPlant = plant; varietyStart = i; break; }
+    }
+
+    // Extract variety parts (stop at latin indicators)
+    const varietyParts = [];
+    for (let i = varietyStart; i < parts.length; i++) {
+      if (LATIN.has(parts[i])) break;
+      varietyParts.push(parts[i].charAt(0).toUpperCase() + parts[i].slice(1));
+    }
+    const variety = varietyParts.join(' ');
+
+    return { plant: matchedPlant, variety, slug, url };
   }
 
   registerSW() {
@@ -255,11 +329,20 @@ class PotagerApp {
       db.getHarvests(id)
     ]);
 
-    const ficheHTML = dbPlant ? this.ficheHTML(dbPlant, plant) : `
+    // Kokopelli product URL stored with the plant
+    const kokoUrlBadge = plant.kokoUrl ? `
+      <a href="${plant.kokoUrl}" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;
+                padding:6px 14px;background:#fff8e1;border:1px solid #d4a017;
+                border-radius:20px;font-size:13px;font-weight:700;color:#7b4f00;text-decoration:none">
+        🌻 Fiche Kokopelli ↗
+      </a>` : '';
+
+    const ficheHTML = (dbPlant ? this.ficheHTML(dbPlant, plant) : `
       <div class="card">
         <p style="color:var(--text-mid)">${plant.description || 'Aucune description.'}</p>
       </div>
-    `;
+    `) + kokoUrlBadge;
 
     return `
       <div class="plant-hero">
@@ -582,8 +665,24 @@ class PotagerApp {
 
   // ===== ADD PLANT VIEW =====
   viewAddPlant() {
+    const imp = this._kokopelliImport;
+    const importBanner = imp ? `
+      <div style="background:#fff8e1;border:1.5px solid #d4a017;border-radius:var(--r);padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:18px">🌻</span>
+          <strong style="color:#7b4f00;font-size:14px">Importé depuis Kokopelli</strong>
+        </div>
+        <p style="font-size:13px;color:#a0761a;margin-bottom:4px">
+          ${imp.plant ? `Plante détectée : <strong>${imp.plant.emoji} ${imp.plant.name}</strong>` : 'Plante non reconnue — remplis manuellement.'}
+          ${imp.variety ? ` · Variété : <strong>${imp.variety}</strong>` : ''}
+        </p>
+        <a href="${imp.url}" target="_blank" style="font-size:12px;color:#d4a017;text-decoration:underline">Voir la fiche Kokopelli ↗</a>
+      </div>
+    ` : '';
+
     return `
       <div style="padding-bottom:16px">
+        ${importBanner}
         <p style="font-size:14px;color:var(--text-mid);margin-bottom:16px">Choisissez une plante dans notre base ou créez une fiche personnalisée.</p>
 
         <div class="form-group">
@@ -647,6 +746,12 @@ class PotagerApp {
           <div class="form-group">
             <label class="form-label">Emplacement (optionnel)</label>
             <input class="form-input" id="plant-location" placeholder="Ex: Carré A, Serre, Bac nord…" type="text">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Lien fiche Kokopelli (optionnel)</label>
+            <input class="form-input" id="plant-koko-url" type="url"
+              placeholder="https://www.kokopelli-semences.fr/fr/p/…"
+              value="${imp?.url || ''}">
           </div>
           <div class="form-group">
             <label class="form-label">Note initiale (optionnel)</label>
@@ -841,6 +946,31 @@ class PotagerApp {
       this.selectedDbPlant = null;
       this.isCustomPlant = false;
 
+      // Pre-fill from Kokopelli import (Web Share Target)
+      if (this._kokopelliImport) {
+        const imp = this._kokopelliImport;
+        if (imp.plant) {
+          this.selectedDbPlant = imp.plant;
+          const item = document.querySelector(`.db-plant-item[data-db-id="${imp.plant.id}"]`);
+          if (item) {
+            item.classList.add('selected');
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          const info = $('selected-plant-info');
+          if (info) {
+            info.classList.remove('hidden');
+            $('sel-emoji').textContent = imp.plant.emoji;
+            $('sel-name').textContent = imp.plant.name;
+            $('sel-cat').textContent = CATEGORIES[imp.plant.category]?.label || '';
+          }
+        }
+        if (imp.variety) {
+          const varInput = $('plant-variety');
+          if (varInput) varInput.value = imp.variety;
+        }
+        this._kokopelliImport = null;
+      }
+
       // Pre-fill location if coming from a garden zone
       if (this._prefillLocation) {
         const locInput = $('plant-location');
@@ -922,6 +1052,8 @@ class PotagerApp {
 
         let plantData;
 
+        const kokoUrl = $('plant-koko-url')?.value.trim() || null;
+
         if (this.isCustomPlant) {
           const customName = $('custom-name')?.value.trim();
           if (!customName) { alert('Veuillez saisir un nom pour la plante.'); return; }
@@ -931,11 +1063,11 @@ class PotagerApp {
             customEmoji: $('custom-emoji')?.value.trim() || '🌿',
             category: $('custom-cat')?.value || 'legume-feuille',
             description: $('custom-desc')?.value.trim(),
-            variety, plantedAt, location
+            variety, plantedAt, location, kokoUrl
           };
         } else {
           if (!this.selectedDbPlant) { alert('Veuillez sélectionner une plante.'); return; }
-          plantData = { dbId: this.selectedDbPlant.id, variety, plantedAt, location };
+          plantData = { dbId: this.selectedDbPlant.id, variety, plantedAt, location, kokoUrl };
         }
 
         const plantId = await db.addPlant(plantData);

@@ -16,5 +16,14 @@
     }
   ],
   "categories": ["lifestyle", "productivity"],
-  "lang": "fr"
+  "lang": "fr",
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "url":   "shared_url",
+      "text":  "shared_text",
+      "title": "shared_title"
+    }
+  }
 }
