@@ -19,7 +19,12 @@ const TaskEngine = (() => {
     const s = getChecked();
     s.has(id) ? s.delete(id) : s.add(id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...s]));
-    return s.has(id);
+    const nowChecked = s.has(id);
+    // Sync vers Firestore (fire & forget)
+    if (typeof GardenSync !== 'undefined' && GardenSync.gardenId) {
+      GardenSync.syncTaskToggle(id, nowChecked);
+    }
+    return nowChecked;
   }
 
   function isChecked(id) { return getChecked().has(id); }

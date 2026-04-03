@@ -39,8 +39,13 @@ const ProfileManager = (() => {
   function create(name, emoji, role = 'kid') {
     const profiles = load();
     const id = 'profile-' + Date.now();
-    profiles.push({ id, name, emoji, role, xp: 0, createdAt: new Date().toISOString() });
+    const profile = { id, name, emoji, role, xp: 0, createdAt: new Date().toISOString() };
+    profiles.push(profile);
     save(profiles);
+    // Sync to Firestore (fire & forget)
+    if (typeof GardenSync !== 'undefined' && GardenSync.gardenId) {
+      GardenSync.saveProfile(profile).catch(() => {});
+    }
     return id;
   }
 
@@ -52,6 +57,10 @@ const ProfileManager = (() => {
     const earned = XP_REWARDS[action] || 0;
     p.xp = (p.xp || 0) + earned;
     save(profiles);
+    // Sync to Firestore (fire & forget)
+    if (typeof GardenSync !== 'undefined' && GardenSync.gardenId) {
+      GardenSync.saveProfile(p).catch(() => {});
+    }
     return earned;
   }
 
@@ -82,16 +91,44 @@ class PotagerApp {
   }
 
   async init() {
-    await db.init();
+    // ── 1. Initialiser la sync Firestore (détecte aussi ?join= dans l'URL) ──
+    const hasGarden = await GardenSync.init();
+
+    if (!hasGarden) {
+      // Nouveau appareil, aucun jardin connu → écran de bienvenue
+      this.showGardenSetup();
+      return;
+    }
+
+    // ── 2. Synchroniser profils + tâches cochées depuis Firestore ────────────
+    try {
+      const remoteProfiles = await GardenSync.getProfiles();
+      if (remoteProfiles.length > 0) {
+        localStorage.setItem('potager-profiles', JSON.stringify(remoteProfiles));
+      }
+    } catch (_) { /* hors ligne — on utilise le cache localStorage */ }
+
+    GardenSync.loadTaskChecked().catch(() => {});
+
+    // ── 3. Migrations données ────────────────────────────────────────────────
     await this.migrateDeduplicateBatch();
     await this.autoImportAprilBatch();
+
     this.setupNav();
     this.registerSW();
     BadgeSystem.trackStreak();
     this.checkNotifications();
 
-    if (ProfileManager.needsSetup()) {
-      this.showFamilySetup();
+    // ── 4. Vérifier identité sur cet appareil ────────────────────────────────
+    if (!GardenSync.isDeviceSetup()) {
+      const profiles = ProfileManager.getAll();
+      if (profiles.length === 0) {
+        // Jardin vide (admin vient de créer) → onboarding famille
+        this.showFamilySetup();
+      } else {
+        // Jardin existant (enfant rejoint via lien) → "Qui es-tu ?"
+        this.showWhoAreYou(profiles);
+      }
       return;
     }
 
@@ -202,11 +239,180 @@ class PotagerApp {
     });
 
     overlay.querySelector('#setup-done').addEventListener('click', () => {
+      GardenSync.markDeviceSetup();
       overlay.remove();
       this.updateHeaderProfile();
       this.navigate('home');
       setTimeout(() => this.checkBadges(), 1200);
     });
+  }
+
+  // ===== GARDEN SETUP (premier lancement — aucun jardin connu) =====
+  showGardenSetup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay garden-setup-overlay';
+    overlay.innerHTML = `
+      <div class="garden-setup-sheet">
+        <div class="garden-setup-logo">🌱</div>
+        <h1 class="garden-setup-title">Mon Potager</h1>
+        <p class="garden-setup-sub">Gérez votre potager en famille,<br>chacun sur son téléphone.</p>
+
+        <button class="btn btn-primary btn-full garden-setup-cta" id="btn-create-garden">
+          Créer mon jardin →
+        </button>
+
+        <div class="garden-setup-divider"><span>ou rejoindre un jardin existant</span></div>
+
+        <div class="garden-setup-join-row">
+          <input class="form-input" id="garden-join-input"
+            placeholder="Coller le lien ou le code…" autocomplete="off" spellcheck="false">
+          <button class="btn btn-outline" id="btn-join-garden">Rejoindre</button>
+        </div>
+        <p class="garden-setup-hint">💡 Demandez le lien d'invitation à l'administrateur du jardin.</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#btn-create-garden').addEventListener('click', async () => {
+      const btn = overlay.querySelector('#btn-create-garden');
+      btn.disabled = true;
+      btn.textContent = 'Création…';
+      await GardenSync.createGarden();
+      // Migration des données IndexedDB existantes
+      await GardenSync.migrateFromIndexedDB();
+      overlay.remove();
+      // Onboarding profils
+      this.showFamilySetup();
+    });
+
+    overlay.querySelector('#btn-join-garden').addEventListener('click', () => {
+      const raw = overlay.querySelector('#garden-join-input').value.trim();
+      // Extraire l'ID depuis une URL ou un code direct
+      let id = raw;
+      try {
+        const u = new URL(raw);
+        id = u.searchParams.get('join') || raw;
+      } catch (_) { /* raw n'est pas une URL valide, c'est déjà le code */ }
+
+      if (!id || id.length < 4) {
+        overlay.querySelector('#garden-join-input').style.borderColor = 'var(--danger)';
+        return;
+      }
+      localStorage.setItem('potager-garden-id', id);
+      window.location.reload();
+    });
+  }
+
+  // ===== QUI ES-TU ? (appareil qui rejoint un jardin existant) =====
+  showWhoAreYou(profiles) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title" style="text-align:center;font-size:20px;margin-bottom:6px">
+          👋 Quel jardinier es-tu ?
+        </div>
+        <p style="text-align:center;font-size:14px;color:var(--text-mid);margin-bottom:20px">
+          Choisis ton profil sur cet appareil.
+        </p>
+        <div class="who-are-you-grid">
+          ${profiles.map(p => {
+            const prog = ProfileManager.getLevelProgress(p.xp || 0);
+            return `
+              <div class="who-card" data-id="${p.id}">
+                <span class="who-card-emoji">${p.emoji}</span>
+                <div class="who-card-name">${p.name}</div>
+                <div class="who-card-level">${prog.level.emoji} ${prog.level.label}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <button class="btn btn-outline btn-full mt-12" id="btn-who-new">
+          + Je suis un nouveau membre
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('.who-card').forEach(card => {
+      card.addEventListener('click', () => {
+        ProfileManager.setActive(card.dataset.id);
+        GardenSync.markDeviceSetup();
+        overlay.remove();
+        this.updateHeaderProfile();
+        this.navigate('home');
+        setTimeout(() => this.checkBadges(), 1200);
+      });
+    });
+
+    overlay.querySelector('#btn-who-new').addEventListener('click', () => {
+      overlay.remove();
+      this.showFamilySetup();
+    });
+  }
+
+  // ===== MODAL INVITATION ENFANTS =====
+  showInviteModal() {
+    const url = GardenSync.getInviteUrl();
+    const code = GardenSync.gardenId;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">📤 Inviter mes enfants</div>
+        <p style="font-size:14px;color:var(--text-mid);line-height:1.6;margin-bottom:16px">
+          Partagez ce lien avec vos enfants. Ils peuvent l'ouvrir sur leur téléphone
+          et installer l'app pour rejoindre <strong>votre potager</strong>.
+        </p>
+
+        <div class="invite-url-box">
+          <span class="invite-url-text" id="invite-url-text">${url}</span>
+          <button class="invite-copy-btn" id="btn-copy-invite">📋</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:12px;color:var(--text-light)">Code du jardin</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <div class="invite-code-box">
+          <span style="font-size:22px;font-weight:900;letter-spacing:3px;color:var(--primary)">${code}</span>
+        </div>
+
+        <button class="btn btn-primary btn-full mt-12" id="btn-share-invite">
+          📤 Partager via…
+        </button>
+        <button class="btn btn-outline btn-full mt-8" id="btn-close-invite">Fermer</button>
+      </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#btn-copy-invite').addEventListener('click', async () => {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      const btn = overlay.querySelector('#btn-copy-invite');
+      btn.textContent = '✅';
+      setTimeout(() => { btn.textContent = '📋'; }, 2000);
+    });
+
+    overlay.querySelector('#btn-share-invite').addEventListener('click', async () => {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Rejoins mon potager !',
+          text: 'Clique pour rejoindre notre potager partagé 🌱',
+          url,
+        }).catch(() => {});
+      } else {
+        await navigator.clipboard.writeText(url).catch(() => {});
+        alert('Lien copié ! Collez-le dans un SMS ou email.');
+      }
+    });
+
+    overlay.querySelector('#btn-close-invite').addEventListener('click', () => overlay.remove());
   }
 
   // ===== PROFILE SWITCHER =====
@@ -237,6 +443,7 @@ class PotagerApp {
           }).join('')}
         </div>
         <button class="btn btn-outline btn-full mt-12" id="btn-add-profile">+ Ajouter un membre</button>
+        <button class="btn btn-invite btn-full mt-8" id="btn-invite-kids">📤 Inviter mes enfants</button>
       </div>
     `;
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
@@ -254,6 +461,11 @@ class PotagerApp {
     overlay.querySelector('#btn-add-profile').addEventListener('click', () => {
       overlay.remove();
       this.showAddProfileModal();
+    });
+
+    overlay.querySelector('#btn-invite-kids').addEventListener('click', () => {
+      overlay.remove();
+      this.showInviteModal();
     });
   }
 

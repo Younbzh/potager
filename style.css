@@ -2270,6 +2270,143 @@ img { max-width: 100%; }
 }
 .kid-explore-btn:active { background: var(--primary-bg); border-color: var(--primary); transform: scale(0.96); }
 
+/* ===== Garden Setup Screen ===== */
+.garden-setup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: linear-gradient(160deg, #1b4332 0%, #2d6a4f 55%, #40916c 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.garden-setup-sheet {
+  background: var(--surface);
+  border-radius: 28px 28px 0 0;
+  padding: 32px 24px 48px;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
+.garden-setup-logo {
+  font-size: 52px;
+  margin-bottom: 10px;
+  line-height: 1;
+}
+.garden-setup-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.garden-setup-sub {
+  font-size: 15px;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+.garden-setup-cta {
+  font-size: 16px;
+  padding: 14px;
+  border-radius: var(--r);
+  margin-bottom: 20px;
+}
+.garden-setup-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: var(--text-light);
+  font-size: 13px;
+}
+.garden-setup-divider::before,
+.garden-setup-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.garden-setup-join-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.garden-setup-join-row .form-input { flex: 1; }
+.garden-setup-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* ===== Who Are You modal ===== */
+.who-are-you-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.who-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.who-card:active { border-color: var(--primary); background: var(--primary-bg); transform: scale(0.97); }
+.who-card-emoji { font-size: 36px; }
+.who-card-name  { font-size: 14px; font-weight: 800; }
+.who-card-level { font-size: 11px; color: var(--text-light); }
+
+/* ===== Invite modal ===== */
+.invite-url-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-bottom: 4px;
+}
+.invite-url-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--primary);
+  word-break: break-all;
+  font-family: monospace;
+}
+.invite-copy-btn {
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background var(--transition);
+}
+.invite-copy-btn:active { background: var(--primary-bg); }
+.invite-code-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-bg);
+  border: 2px dashed var(--primary-light);
+  border-radius: var(--r);
+  padding: 14px;
+}
+.btn-invite {
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  border: 1.5px solid #ffe082;
+  color: #e65100;
+  font-weight: 700;
+}
+.btn-invite:active { background: #fff3cd; }
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -109,4 +109,6 @@ class GardenDB {
   }
 }
 
-const db = new GardenDB();
+// Note: 'db' is now defined by sync.js (GardenSync).
+// _localDB is kept only for the one-time IndexedDB → Firestore migration.
+const _localDB = new GardenDB();
