@@ -11,6 +11,7 @@ class PotagerApp {
 
   async init() {
     await db.init();
+    await this.migrateDeduplicateBatch();
     this.setupNav();
     this.registerSW();
     BadgeSystem.trackStreak();
@@ -25,6 +26,48 @@ class PotagerApp {
 
     // Check badges after a short delay (let views render first)
     setTimeout(() => this.checkBadges(), 1200);
+  }
+
+  // One-time migration: merge duplicate batch plants created by old import code
+  async migrateDeduplicateBatch() {
+    if (localStorage.getItem('migration-dedup-batch-v1')) return;
+
+    const BATCH_QTY = {
+      'basilic|Grand vert': 4,
+      'capucine|Empress of India': 4,
+      'capucine|Couleurs mélangées': 4,
+      'tagete|Double Pinwheel': 4,
+      'bourrache|Bleue': 4,
+      'salade|Buttercrunch': 3,
+      'tabac|Ghost Pipes': 3,
+    };
+
+    const plants = await db.getPlants();
+    const batchPlants = plants.filter(p => p.plantedAt === '2026-04-02');
+
+    // Group by dbId+variety
+    const groups = {};
+    batchPlants.forEach(p => {
+      const key = `${p.dbId}|${p.variety || ''}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    });
+
+    let changed = false;
+    for (const [key, group] of Object.entries(groups)) {
+      if (group.length <= 1 && group[0]?.quantity) continue; // already clean
+      changed = true;
+      // Keep first, assign correct quantity, delete duplicates
+      const keeper = { ...group[0], quantity: BATCH_QTY[key] || group.length };
+      await db.updatePlant(keeper);
+      for (let i = 1; i < group.length; i++) {
+        await db.deletePlant(group[i].id);
+      }
+    }
+
+    localStorage.setItem('migration-dedup-batch-v1', '1');
+    // Reset import flag so the banner reappears to let user re-import missing lots
+    localStorage.removeItem('semis-20260402-imported');
   }
 
   async checkBadges() {
@@ -1775,13 +1818,18 @@ class PotagerApp {
     document.body.appendChild(overlay);
 
     document.getElementById('btn-confirm-batch').addEventListener('click', async () => {
+      const existingPlants = await db.getPlants();
       let count = 0;
       for (let i = 0; i < BATCH.length; i++) {
         const cb = document.getElementById(`bc-${i}`);
         if (!cb?.checked) continue;
         const b = BATCH[i];
-        const dbP = PLANTS_DB.find(p => p.id === b.dbId);
-        await db.addPlant({
+        // Skip if already imported (same dbId + variety + plantedAt)
+        const alreadyExists = existingPlants.some(p =>
+          p.dbId === b.dbId && p.variety === b.variety && p.plantedAt === '2026-04-02'
+        );
+        if (alreadyExists) continue;
+        const plantId = await db.addPlant({
           dbId: b.dbId,
           variety: b.variety,
           plantedAt: '2026-04-02',
@@ -1790,13 +1838,18 @@ class PotagerApp {
           quantity: b.qty
         });
         if (b.note) {
-          // Add note to the first plant added — simplified
+          await db.addNote(plantId, b.note, 'note');
         }
         count += b.qty;
       }
       localStorage.setItem('semis-20260402-imported', '1');
       overlay.remove();
-      alert(`✅ ${count} godets enregistrés !`);
+      if (count > 0) {
+        alert(`✅ ${count} godets enregistrés !`);
+      } else {
+        alert('Tous ces lots sont déjà dans votre jardin.');
+      }
+      this.checkBadges();
       this.navigate('garden');
     });
   }
