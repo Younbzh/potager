@@ -317,9 +317,26 @@ class PotagerApp {
 
     const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
+    const plantCount = stats.plants;
+
     return `
       <p class="home-greeting">Bonjour 👋</p>
       <p class="home-date">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</p>
+
+      ${plantCount === 0 ? `
+        <div class="card mb-12" style="border-color:#a5d6a7;background:#f1f8e9">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:20px">🌱</span>
+            <strong style="color:#2e7d32">Semis du 2 avril prêts à importer</strong>
+          </div>
+          <p style="font-size:13px;color:#388e3c;margin-bottom:10px;line-height:1.5">
+            Vos 7 lots de godets ne sont pas encore dans l'app. Cliquez pour les ajouter.
+          </p>
+          <button class="btn btn-primary btn-sm" id="btn-force-import" style="background:#388e3c">
+            Importer mes semis →
+          </button>
+        </div>
+      ` : ''}
 
       ${showNotifBanner ? `<div class="notif-banner">
         🔔 Recevez des rappels pour la lune et vos semis
@@ -1316,6 +1333,11 @@ class PotagerApp {
       on('btn-go-stats', 'click', () => this.navigate('stats'));
       on('btn-go-journal', 'click', () => this.navigate('journal'));
       on('fab-quick-note', 'click', () => this.showQuickNoteModal());
+      on('btn-force-import', 'click', async () => {
+        localStorage.removeItem('auto-import-april2-v1');
+        await this.autoImportAprilBatch();
+        this.navigate('plants');
+      });
       // Reminder clicks → plant detail
       document.querySelectorAll('#reminders-list .reminder-item').forEach(item => {
         item.addEventListener('click', () => this.navigate('plant-detail', { id: parseInt(item.dataset.plantId) }));
