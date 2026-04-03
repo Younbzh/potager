@@ -505,7 +505,7 @@ class PotagerApp {
           </div>`
         : `<div class="plants-grid">${plants.map(p => this.plantCardHTML(p)).join('')}</div>`
       }
-      <button class="fab" id="fab-add-plant">+</button>
+      <button class="fab" id="fab-add-plant" title="Ajouter une plante">+</button>
     `;
   }
 
@@ -583,7 +583,12 @@ class PotagerApp {
         <button class="btn btn-outline btn-full mt-12" id="btn-add-harvest">🧺 Enregistrer une récolte</button>
       </div>
 
-      <button class="fab" id="fab-add-note" title="Ajouter une note">+</button>
+      <div style="display:flex;gap:8px;margin-top:12px;padding-bottom:4px">
+        <button class="btn btn-outline" style="flex:1;justify-content:center;font-size:13px" id="btn-resemer">
+          🔄 Resemer
+        </button>
+        <button class="fab-inline" id="fab-add-note" title="Ajouter une note">✏️ Note</button>
+      </div>
     `;
   }
 
@@ -1440,7 +1445,7 @@ class PotagerApp {
     if (view === 'home') {
       on('home-moon-btn', 'click', () => this.navigate('moon'));
       on('home-see-all', 'click', () => this.navigate('plants'));
-      on('home-add-plant', 'click', () => this.navigate('add-plant'));
+      on('home-add-plant', 'click', () => this.showQuickAddModal());
       on('btn-enable-notif', 'click', () => this.requestNotifications());
       on('btn-go-stats', 'click', () => this.navigate('stats'));
       on('btn-go-journal', 'click', () => this.navigate('journal'));
@@ -1463,7 +1468,7 @@ class PotagerApp {
 
     if (view === 'plants') {
       on('btn-koko-catalog', 'click', () => this.showCatalogModal());
-      on('fab-add-plant', 'click', () => this.navigate('add-plant'));
+      on('fab-add-plant', 'click', () => this.showQuickAddModal());
       on('plant-search', 'input', e => {
         this.plantSearch = e.target.value;
         this.renderView('plants', {});
@@ -1487,6 +1492,12 @@ class PotagerApp {
       });
 
       on('fab-add-note', 'click', () => this.navigate('add-note', { plantId: params.id }));
+      on('btn-resemer', 'click', async () => {
+        const plant = await db.getPlant(params.id);
+        if (!plant) return;
+        const dbPlant = PLANTS_DB.find(p => p.id === plant.dbId);
+        this.showQuickAddModal({ prefill: { dbPlant, variety: plant.variety, location: plant.location } });
+      });
       on('btn-add-harvest', 'click', () => this.navigate('add-harvest', { plantId: params.id }));
       on('btn-delete-plant', 'click', () => this.confirmDeletePlant(params.id));
 
@@ -2094,6 +2105,401 @@ class PotagerApp {
         </div>
       </div>
     `;
+  }
+
+  // ===== QUICK ADD MODAL =====
+  async showQuickAddModal(options = {}) {
+    const { prefill } = options;
+
+    // Season suggestions: plants ideal to sow this month in Bretagne
+    const month = new Date().getMonth() + 1; // 1-12
+    const seasonal = PLANTS_DB.filter(p => {
+      const tl = PLANT_TIMELINE[p.id];
+      if (!tl) return false;
+      if (tl.plantType === 'indoor') {
+        // Ideal indoor sow month: minOutdoorMonth - weekToTransplant/4 (approx)
+        const idealSowMonth = (tl.minOutdoorMonth || 5) - Math.ceil((tl.weekToTransplant || 6) / 4);
+        return month >= idealSowMonth - 1 && month <= idealSowMonth + 1;
+      }
+      if (tl.plantType === 'direct') {
+        return month >= (tl.minOutdoorMonth || 4) && month <= (tl.minOutdoorMonth || 4) + 2;
+      }
+      return false;
+    }).slice(0, 6);
+
+    // Recently added plants
+    const recentPlants = await db.getRecentPlants(3);
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay quick-add-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet quick-add-sheet">
+        <div class="modal-handle"></div>
+
+        <!-- Step 1: Search -->
+        <div id="qa-step-1">
+          <div class="qa-search-bar">
+            <input class="qa-search-input" id="qa-search" type="text"
+              placeholder="Tomate, basilic, carotte…"
+              autocomplete="off" autocorrect="off" spellcheck="false"
+              value="${prefill?.dbPlant?.name || ''}">
+            <button class="qa-mic-btn" id="qa-mic" title="Reconnaissance vocale">🎤</button>
+          </div>
+          <div class="qa-mic-status" id="qa-mic-status"></div>
+
+          <!-- Suggestions live -->
+          <div id="qa-suggestions" class="qa-suggestions"></div>
+
+          <!-- Seasonal suggestions -->
+          ${seasonal.length ? `
+            <div class="qa-section-label">🌱 Idéal à semer en ${['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'][month-1]}</div>
+            <div class="qa-chips">
+              ${seasonal.map(p => `
+                <button class="qa-chip" data-db-id="${p.id}">
+                  <span>${p.emoji}</span><span>${p.name}</span>
+                </button>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${recentPlants.length ? `
+            <div class="qa-section-label">🕐 Récents</div>
+            <div class="qa-chips">
+              ${recentPlants.map(rp => {
+                const dbP = PLANTS_DB.find(p => p.id === rp.dbId);
+                if (!dbP) return '';
+                return `<button class="qa-chip qa-chip-recent" data-db-id="${dbP.id}">
+                  <span>${dbP.emoji}</span><span>${dbP.name}${rp.variety ? ' · ' + rp.variety : ''}</span>
+                </button>`;
+              }).join('')}
+            </div>
+          ` : ''}
+
+          <div style="margin-top:16px;text-align:center">
+            <button class="btn btn-outline btn-sm" id="qa-advanced">✏️ Fiche complète</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Confirm (hidden initially) -->
+        <div id="qa-step-2" style="display:none">
+          <button class="qa-back-btn" id="qa-back">← Changer</button>
+          <div class="qa-plant-confirm" id="qa-plant-confirm"></div>
+
+          <!-- Variety chips -->
+          <div id="qa-variety-wrap" style="display:none">
+            <div class="qa-section-label">Variété</div>
+            <div class="qa-chips" id="qa-variety-chips"></div>
+            <input class="form-input qa-variety-input" id="qa-variety-custom"
+              placeholder="Autre variété…" type="text">
+          </div>
+
+          <!-- Quantity stepper -->
+          <div class="qa-row">
+            <span class="qa-row-label">Nombre de godets</span>
+            <div class="qa-stepper">
+              <button class="qa-step-btn" id="qa-qty-minus">−</button>
+              <span class="qa-qty-val" id="qa-qty-val">1</span>
+              <button class="qa-step-btn" id="qa-qty-plus">+</button>
+            </div>
+          </div>
+
+          <!-- Zone chips -->
+          <div class="qa-section-label">Zone de plantation</div>
+          <div class="qa-chips qa-zone-chips" id="qa-zone-chips">
+            ${GARDEN_ZONES.filter(z => z.type !== 'repos').map(z => `
+              <button class="qa-chip qa-zone-chip" data-zone="${z.id}">
+                <span>${z.emoji}</span><span>${z.label}</span>
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Date -->
+          <div class="qa-row">
+            <span class="qa-row-label">Date de semis</span>
+            <input type="date" class="qa-date-input" id="qa-date"
+              value="${new Date().toISOString().split('T')[0]}">
+          </div>
+
+          <button class="btn btn-primary btn-full qa-confirm-btn" id="qa-confirm">
+            Ajouter au potager 🌱
+          </button>
+        </div>
+      </div>
+    `;
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    // Focus search
+    setTimeout(() => overlay.querySelector('#qa-search')?.focus(), 100);
+
+    let selectedDbPlant = prefill?.dbPlant || null;
+    let selectedVariety = prefill?.variety || '';
+    let selectedZone = prefill?.location || '';
+    let qty = 1;
+
+    // ── Text parsing ──────────────────────────────────────────────────────
+    const parseText = (text) => {
+      const lower = text.toLowerCase().trim();
+      if (!lower) return [];
+      return PLANTS_DB.filter(p => {
+        const n = p.name.toLowerCase();
+        const id = p.id.toLowerCase();
+        const aliases = [n, id, ...(p.varieties || []).map(v => v.toLowerCase())];
+        return aliases.some(a => a.includes(lower) || lower.includes(a.split(' ')[0]));
+      }).slice(0, 6);
+    };
+
+    const parseNumberFromText = (text) => {
+      const m = text.match(/\b(\d+)\b/);
+      return m ? parseInt(m[1]) : null;
+    };
+
+    const parseZoneFromText = (text) => {
+      const lower = text.toLowerCase();
+      return GARDEN_ZONES.find(z =>
+        lower.includes(z.id.toLowerCase()) ||
+        lower.includes(z.label.toLowerCase().split(' — ')[0])
+      );
+    };
+
+    const parseVarietyFromText = (text, dbPlant) => {
+      if (!dbPlant) return '';
+      const lower = text.toLowerCase();
+      // Check known varieties
+      const koko = dbPlant.kokopelli?.varietiesKoko || [];
+      const match = koko.find(v => lower.includes(v.toLowerCase()));
+      if (match) return match;
+      // Check PLANTS_DB varieties
+      const varMatch = (dbPlant.varieties || []).find(v => lower.includes(v.toLowerCase()));
+      return varMatch || '';
+    };
+
+    // ── Show suggestions ──────────────────────────────────────────────────
+    const showSuggestions = (results) => {
+      const el = overlay.querySelector('#qa-suggestions');
+      if (!el) return;
+      if (!results.length) { el.innerHTML = ''; return; }
+      el.innerHTML = results.map(p => `
+        <div class="qa-suggestion" data-db-id="${p.id}">
+          <span class="qa-sug-emoji">${p.emoji}</span>
+          <div class="qa-sug-info">
+            <div class="qa-sug-name">${p.name}</div>
+            <div class="qa-sug-cat">${CATEGORIES[p.category]?.label || ''} · ${p.varieties?.slice(0,3).join(', ') || ''}</div>
+          </div>
+          <span class="qa-sug-arrow">→</span>
+        </div>
+      `).join('');
+      el.querySelectorAll('.qa-suggestion').forEach(s => {
+        s.addEventListener('click', () => selectPlant(s.dataset.dbId));
+      });
+    };
+
+    // ── Select a plant → show step 2 ─────────────────────────────────────
+    const selectPlant = (dbId, textOverride = '') => {
+      const dbPlant = PLANTS_DB.find(p => p.id === dbId);
+      if (!dbPlant) return;
+      selectedDbPlant = dbPlant;
+
+      // Auto-parse variety + zone from search text
+      const searchText = overlay.querySelector('#qa-search')?.value || textOverride;
+      const autoVariety = parseVarietyFromText(searchText, dbPlant);
+      const autoZone = parseZoneFromText(searchText);
+      const autoQty = parseNumberFromText(searchText);
+
+      if (autoVariety) selectedVariety = autoVariety;
+      if (autoZone) {
+        selectedZone = autoZone.id;
+        overlay.querySelectorAll('.qa-zone-chip').forEach(c => c.classList.toggle('active', c.dataset.zone === autoZone.id));
+      }
+      if (autoQty) {
+        qty = Math.min(autoQty, 99);
+        const qv = overlay.querySelector('#qa-qty-val');
+        if (qv) qv.textContent = qty;
+      }
+
+      const tl = PLANT_TIMELINE[dbPlant.id];
+      const bioType = dbPlant.biodynamic || tl?.biodynamicIdeal || 'fruit';
+      const bioLabel = MoonCalc.getBiodynamicLabel(bioType);
+
+      // Build confirm card
+      const confirmEl = overlay.querySelector('#qa-plant-confirm');
+      confirmEl.innerHTML = `
+        <div class="qa-confirm-card">
+          <span style="font-size:36px">${dbPlant.emoji}</span>
+          <div class="qa-confirm-info">
+            <div style="font-size:18px;font-weight:800">${dbPlant.name}</div>
+            <div style="font-size:12px;color:var(--text-light)">${CATEGORIES[dbPlant.category]?.label || ''}</div>
+            ${tl ? `<div style="font-size:11px;color:var(--primary);margin-top:4px">
+              ${tl.plantType === 'indoor' ? `🌱 Semis intérieur · ${tl.weekToTransplant}sem → pleine terre` : '🌿 Semis direct'}
+              · Récolte dans ~${tl.harvestDaysMin}j
+            </div>` : ''}
+          </div>
+          <span class="badge badge-${bioType}" style="align-self:flex-start">${bioLabel.emoji}</span>
+        </div>
+      `;
+
+      // Populate variety chips
+      const varietyWrap = overlay.querySelector('#qa-variety-wrap');
+      const allVarieties = [...(dbPlant.varieties || []), ...(dbPlant.kokopelli?.varietiesKoko || [])];
+      const uniqueVarieties = [...new Set(allVarieties)].slice(0, 8);
+
+      if (uniqueVarieties.length) {
+        varietyWrap.style.display = '';
+        const chipsEl = overlay.querySelector('#qa-variety-chips');
+        chipsEl.innerHTML = uniqueVarieties.map(v => `
+          <button class="qa-chip qa-var-chip ${v === selectedVariety ? 'active' : ''}" data-variety="${v}">${v}</button>
+        `).join('');
+
+        const customInput = overlay.querySelector('#qa-variety-custom');
+        if (selectedVariety && !uniqueVarieties.includes(selectedVariety)) {
+          customInput.value = selectedVariety;
+        }
+
+        chipsEl.querySelectorAll('.qa-var-chip').forEach(c => {
+          c.addEventListener('click', () => {
+            chipsEl.querySelectorAll('.qa-var-chip').forEach(x => x.classList.remove('active'));
+            c.classList.toggle('active');
+            selectedVariety = c.classList.contains('active') ? c.dataset.variety : '';
+            if (selectedVariety) customInput.value = '';
+          });
+        });
+
+        customInput.addEventListener('input', () => {
+          if (customInput.value) {
+            chipsEl.querySelectorAll('.qa-var-chip').forEach(x => x.classList.remove('active'));
+            selectedVariety = customInput.value;
+          }
+        });
+      } else {
+        varietyWrap.style.display = 'none';
+      }
+
+      // Show step 2
+      overlay.querySelector('#qa-step-1').style.display = 'none';
+      overlay.querySelector('#qa-step-2').style.display = '';
+    };
+
+    // ── Search input listener ─────────────────────────────────────────────
+    overlay.querySelector('#qa-search').addEventListener('input', e => {
+      const val = e.target.value.trim();
+      showSuggestions(val.length >= 1 ? parseText(val) : []);
+    });
+
+    // ── Chip clicks (seasonal + recent) ──────────────────────────────────
+    overlay.querySelectorAll('.qa-chip[data-db-id]').forEach(c => {
+      c.addEventListener('click', () => selectPlant(c.dataset.dbId));
+    });
+
+    // ── Back button ───────────────────────────────────────────────────────
+    overlay.querySelector('#qa-back').addEventListener('click', () => {
+      overlay.querySelector('#qa-step-1').style.display = '';
+      overlay.querySelector('#qa-step-2').style.display = 'none';
+      selectedDbPlant = null;
+      overlay.querySelector('#qa-suggestions').innerHTML = '';
+    });
+
+    // ── Qty stepper ───────────────────────────────────────────────────────
+    overlay.querySelector('#qa-qty-minus').addEventListener('click', () => {
+      if (qty > 1) { qty--; overlay.querySelector('#qa-qty-val').textContent = qty; }
+    });
+    overlay.querySelector('#qa-qty-plus').addEventListener('click', () => {
+      qty++; overlay.querySelector('#qa-qty-val').textContent = qty;
+    });
+
+    // ── Zone chips ────────────────────────────────────────────────────────
+    overlay.querySelectorAll('.qa-zone-chip').forEach(c => {
+      if (c.dataset.zone === selectedZone) c.classList.add('active');
+      c.addEventListener('click', () => {
+        overlay.querySelectorAll('.qa-zone-chip').forEach(x => x.classList.remove('active'));
+        if (selectedZone === c.dataset.zone) {
+          selectedZone = '';
+        } else {
+          c.classList.add('active');
+          selectedZone = c.dataset.zone;
+        }
+      });
+    });
+
+    // ── Advanced mode ─────────────────────────────────────────────────────
+    overlay.querySelector('#qa-advanced').addEventListener('click', () => {
+      overlay.remove();
+      this.navigate('add-plant');
+    });
+
+    // ── Voice input ───────────────────────────────────────────────────────
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const micBtn = overlay.querySelector('#qa-mic');
+    const micStatus = overlay.querySelector('#qa-mic-status');
+
+    if (!SpeechRec) {
+      micBtn.style.opacity = '0.3';
+      micBtn.title = 'Reconnaissance vocale non disponible sur ce navigateur';
+    } else {
+      micBtn.addEventListener('click', () => {
+        const rec = new SpeechRec();
+        rec.lang = 'fr-FR';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+
+        micStatus.textContent = '🎙️ À l\'écoute…';
+        micStatus.style.color = '#e63946';
+        micBtn.textContent = '⏹️';
+
+        rec.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          micStatus.textContent = `"${transcript}"`;
+          micStatus.style.color = 'var(--text-mid)';
+          micBtn.textContent = '🎤';
+
+          const searchInput = overlay.querySelector('#qa-search');
+          searchInput.value = transcript;
+          const results = parseText(transcript);
+          if (results.length === 1) {
+            // Unique match → auto-select
+            setTimeout(() => selectPlant(results[0].id, transcript), 400);
+          } else {
+            showSuggestions(results);
+          }
+        };
+
+        rec.onerror = () => {
+          micStatus.textContent = '⚠️ Microphone non disponible';
+          micBtn.textContent = '🎤';
+        };
+        rec.onend = () => { if (micBtn.textContent === '⏹️') micBtn.textContent = '🎤'; };
+
+        rec.start();
+      });
+    }
+
+    // ── Confirm save ─────────────────────────────────────────────────────
+    overlay.querySelector('#qa-confirm').addEventListener('click', async () => {
+      if (!selectedDbPlant) return;
+      const customVariety = overlay.querySelector('#qa-variety-custom')?.value.trim();
+      const finalVariety = customVariety || selectedVariety || '';
+      const plantedAt = overlay.querySelector('#qa-date')?.value || new Date().toISOString().split('T')[0];
+
+      const plantId = await db.addPlant({
+        dbId: selectedDbPlant.id,
+        variety: finalVariety,
+        plantedAt,
+        location: selectedZone,
+        quantity: qty,
+        growthStatus: 'semis',
+      });
+
+      this.checkBadges();
+      overlay.remove();
+
+      // Navigate to the new plant's detail
+      this.navigate('plant-detail', { id: plantId });
+    });
+
+    // Auto-select if prefill given
+    if (prefill?.dbPlant) {
+      selectPlant(prefill.dbPlant.id);
+    }
   }
 
   showCatalogModal() {

@@ -1035,6 +1035,119 @@ img { max-width: 100%; }
 .stats-full-num { font-size: 36px; font-weight: 800; color: var(--primary); display: block; }
 .stats-full-lbl { font-size: 12px; color: var(--text-light); font-weight: 600; display: block; margin-top: 2px; }
 
+/* ===== Quick Add Modal ===== */
+.quick-add-sheet { max-height: 90vh; overflow-y: auto; }
+.qa-search-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.qa-search-input {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 12px 16px;
+  border: 2px solid var(--primary);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+.qa-search-input:focus { border-color: var(--primary-dark); }
+.qa-mic-btn {
+  font-size: 22px;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s;
+}
+.qa-mic-btn:active { background: #fce4ec; }
+.qa-mic-status { font-size: 12px; color: var(--text-light); min-height: 16px; margin-bottom: 6px; text-align: center; }
+.qa-suggestions { margin-bottom: 4px; }
+.qa-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.qa-suggestion:active { background: var(--bg); }
+.qa-sug-emoji { font-size: 26px; width: 36px; text-align: center; }
+.qa-sug-info { flex: 1; }
+.qa-sug-name { font-size: 15px; font-weight: 700; }
+.qa-sug-cat  { font-size: 11px; color: var(--text-light); }
+.qa-sug-arrow { font-size: 16px; color: var(--primary); font-weight: 700; }
+.qa-section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  color: var(--text-light); letter-spacing: 0.5px;
+  margin: 12px 0 6px;
+}
+.qa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.qa-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.qa-chip:active, .qa-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+.qa-chip.qa-zone-chip.active { background: #1b5e20; border-color: #1b5e20; }
+.qa-back-btn {
+  font-size: 13px; color: var(--primary); font-weight: 700;
+  background: none; border: none; padding: 0; margin-bottom: 12px;
+  cursor: pointer;
+}
+.qa-confirm-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg); border-radius: var(--r);
+  padding: 14px; margin-bottom: 14px;
+}
+.qa-confirm-info { flex: 1; }
+.qa-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.qa-row-label { font-size: 14px; font-weight: 600; }
+.qa-stepper { display: flex; align-items: center; gap: 10px; }
+.qa-step-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--primary); background: none;
+  font-size: 18px; font-weight: 700; color: var(--primary);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.qa-qty-val { font-size: 20px; font-weight: 800; min-width: 28px; text-align: center; }
+.qa-date-input {
+  border: 1.5px solid var(--border); border-radius: var(--r-sm);
+  padding: 6px 10px; font-size: 14px; background: var(--surface);
+  color: var(--text);
+}
+.qa-variety-input {
+  margin-top: 8px; font-size: 14px;
+}
+.qa-confirm-btn { margin-top: 16px; font-size: 16px; padding: 16px; }
+.fab-inline {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 18px; border-radius: 20px;
+  background: var(--primary); color: white;
+  font-size: 13px; font-weight: 700; border: none; cursor: pointer;
+}
+
 /* ===== Quick Note Modal ===== */
 .quick-note-plant-list {
   display: flex;
