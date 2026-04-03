@@ -254,7 +254,7 @@ class PotagerApp {
       b.classList.toggle('active', b.dataset.view === view);
     });
 
-    const navViews = ['home', 'plants', 'calendar', 'moon', 'garden'];
+    const navViews = ['home', 'plants', 'tasks', 'moon', 'garden'];
     const showNav = navViews.includes(view);
     document.getElementById('app-nav').style.display = showNav ? 'flex' : 'none';
 
@@ -270,7 +270,8 @@ class PotagerApp {
     switch (view) {
       case 'home':     this.renderHeader(header, 'Mon Potager', false); main.innerHTML = await this.viewHome(); break;
       case 'plants':   this.renderHeader(header, 'Mes Plantes', false); main.innerHTML = await this.viewPlants(); break;
-      case 'calendar': this.renderHeader(header, 'Calendrier', false); main.innerHTML = this.viewCalendar(); break;
+      case 'tasks':    this.renderHeader(header, 'Mes Tâches', false); main.innerHTML = await this.viewTasks(); break;
+      case 'calendar': this.renderHeader(header, 'Calendrier Lunaire', true); main.innerHTML = this.viewCalendar(); break;
       case 'moon':     this.renderHeader(header, 'Lune & Biodynamie', false); main.innerHTML = this.viewMoon(); break;
       case 'garden':   this.renderHeader(header, 'Plan du Jardin', false); main.innerHTML = await this.viewGarden(); break;
       case 'stats':    this.renderHeader(header, 'Statistiques & Badges', true); main.innerHTML = await this.viewStats(); break;
@@ -550,6 +551,8 @@ class PotagerApp {
         ${plant.location ? `<div class="plant-hero-date">📍 ${plant.location}</div>` : ''}
       </div>
 
+      ${this.plantTimelineHTML(plant)}
+
       ${this.statusStepperHTML(plant)}
 
       <div class="tabs-bar">
@@ -703,6 +706,115 @@ class PotagerApp {
       <button class="btn btn-outline btn-full" id="btn-go-rotation" style="justify-content:center;gap:8px">
         🔄 Guide rotation des cultures
       </button>
+    `;
+  }
+
+  // ===== TASKS VIEW =====
+  async viewTasks() {
+    const weatherData = await Weather.fetch().catch(() => null);
+    const tasks = await TaskEngine.generateTasks(weatherData);
+
+    if (tasks.length === 0) {
+      const bioType = MoonCalc.getBiodynamicType(new Date());
+      const bioLabel = MoonCalc.getBiodynamicLabel(bioType);
+      return `
+        <div class="empty-state" style="margin-top:40px">
+          <span class="empty-icon">${bioLabel.emoji}</span>
+          <h3>Aucune tâche urgente</h3>
+          <p>${bioLabel.advice}</p>
+          <button class="btn btn-outline mt-12" onclick="app.navigate('calendar')">📅 Voir le calendrier lunaire</button>
+        </div>
+      `;
+    }
+
+    const urgent = tasks.filter(t => !t.checked && t.daysUntil <= 7);
+    const week   = tasks.filter(t => !t.checked && t.daysUntil > 7 && t.daysUntil <= 14);
+    const coming = tasks.filter(t => !t.checked && t.daysUntil > 14);
+    const done   = tasks.filter(t => t.checked);
+
+    const taskCardHTML = (t) => {
+      const def = TaskEngine.TASK_DEF[t.type];
+      const urgLabel = t.daysUntil < 0 ? `En retard de ${Math.abs(t.daysUntil)}j`
+        : t.daysUntil === 0 ? 'Aujourd\'hui !'
+        : t.daysUntil === 1 ? 'Demain'
+        : `${t.dateStr}${t.type === 'recolte' && t.dateEndStr ? ' → ' + t.dateEndStr : ''}`;
+      const scoreBar = Math.round((t.urgency * 0.5 + t.weatherScore * 0.3 + t.moonScore * 0.2));
+
+      return `
+        <div class="task-card ${t.checked ? 'checked' : ''}" data-task-id="${t.id}" data-plant-id="${t.plantId}">
+          <div class="task-card-bar" style="background:${def.border}"></div>
+          <label class="task-card-check-wrap">
+            <input type="checkbox" class="task-check" data-task-id="${t.id}" ${t.checked ? 'checked' : ''}>
+          </label>
+          <div class="task-card-body">
+            <div class="task-card-title">
+              ${def.emoji} ${t.plantEmoji} ${t.plantName}${t.variety ? ' · ' + t.variety : ''}
+              ${t.quantity > 1 ? `<span class="task-qty">×${t.quantity}</span>` : ''}
+            </div>
+            <div class="task-card-sub">${def.label}${t.location ? ' · 📍 ' + t.location : ''}</div>
+            <div class="task-card-date ${t.daysUntil < 0 ? 'overdue' : t.daysUntil <= 3 ? 'soon' : ''}">${urgLabel}</div>
+            <div class="task-card-hints">
+              <span class="task-hint">${t.weatherNote}</span>
+              <span class="task-hint">${t.moonNote}</span>
+            </div>
+          </div>
+          <div class="task-score">${scoreBar}</div>
+        </div>
+      `;
+    };
+
+    const sectionHTML = (title, dot, items, collapsible = false) => {
+      if (!items.length) return '';
+      const id = 'sec-' + title.replace(/\s/g,'');
+      return `
+        <div class="task-section">
+          <div class="task-section-header">
+            <span class="task-section-dot" style="background:${dot}"></span>
+            <span class="task-section-title">${title}</span>
+            <span class="task-section-count">${items.length}</span>
+          </div>
+          ${items.map(taskCardHTML).join('')}
+        </div>
+      `;
+    };
+
+    return `
+      <div class="tasks-today-hint">
+        ${MoonCalc.getPhaseEmoji(MoonCalc.getPhase(new Date()))} ${MoonCalc.getPhaseName(MoonCalc.getPhase(new Date()))}
+        · ${MoonCalc.getBiodynamicLabel(MoonCalc.getBiodynamicType(new Date())).label}
+        · ${weatherData ? weatherData.current.emoji + ' ' + weatherData.current.temp + '°C' : ''}
+      </div>
+
+      ${sectionHTML('🔴 Urgent — cette semaine', '#e63946', urgent)}
+      ${sectionHTML('🟡 Dans 2 semaines', '#f4a261', week)}
+      ${sectionHTML('🟢 À venir', '#52b788', coming)}
+      ${done.length ? sectionHTML('✅ Faites', '#aaa', done) : ''}
+
+      <div style="text-align:center;margin:20px 0">
+        <button class="btn btn-outline btn-sm" onclick="app.navigate('calendar')">📅 Calendrier lunaire</button>
+      </div>
+    `;
+  }
+
+  // ===== PLANT TIMELINE BAR =====
+  plantTimelineHTML(plant) {
+    const steps = TaskEngine.getPlantTimeline(plant);
+    if (steps.length <= 1) return '';
+
+    const phaseColor = { past: '#52b788', overdue: '#e63946', today: '#f4a261', future: '#b7c9c1' };
+
+    return `
+      <div class="ptl-wrap">
+        ${steps.map((s, i) => `
+          <div class="ptl-step">
+            <div class="ptl-icon" style="background:${phaseColor[s.phase] || '#b7c9c1'}">${s.emoji}</div>
+            ${i < steps.length - 1 ? `<div class="ptl-line" style="background:${s.phase === 'past' ? '#52b788' : '#dce9e3'}"></div>` : ''}
+            <div class="ptl-label">${s.label}</div>
+            <div class="ptl-date">${s.dateStr}</div>
+            <div class="ptl-rel ${s.phase}">${s.relStr}</div>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -1460,6 +1572,25 @@ class PotagerApp {
           document.querySelectorAll('.gplan-zone').forEach(z => z.classList.remove('selected'));
           el.classList.add('selected');
           this.showZoneDetail(el.dataset.zoneId);
+        });
+      });
+    }
+
+    if (view === 'tasks') {
+      document.querySelectorAll('.task-check').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          e.stopPropagation();
+          const id = cb.dataset.taskId;
+          TaskEngine.toggleChecked(id);
+          const card = cb.closest('.task-card');
+          if (card) card.classList.toggle('checked', cb.checked);
+        });
+      });
+      document.querySelectorAll('.task-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.type === 'checkbox') return;
+          const plantId = parseInt(card.dataset.plantId);
+          if (plantId) this.navigate('plant-detail', { id: plantId });
         });
       });
     }

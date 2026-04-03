@@ -1179,6 +1179,148 @@ img { max-width: 100%; }
   font-weight: 700;
 }
 
+/* ===== Tasks View ===== */
+.tasks-today-hint {
+  font-size: 13px;
+  color: var(--text-light);
+  text-align: center;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.task-section { margin-bottom: 20px; }
+.task-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.task-section-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.task-section-title { font-size: 14px; font-weight: 700; flex: 1; }
+.task-section-count {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--border);
+  color: var(--text-mid);
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+.task-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.task-card.checked { opacity: 0.45; }
+.task-card.checked .task-card-title { text-decoration: line-through; }
+.task-card-bar { width: 4px; flex-shrink: 0; align-self: stretch; }
+.task-card-check-wrap {
+  display: flex;
+  align-items: flex-start;
+  padding: 14px 6px 14px 12px;
+  cursor: pointer;
+}
+.task-check {
+  width: 18px; height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.task-card-body { flex: 1; padding: 12px 10px 12px 4px; min-width: 0; }
+.task-card-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.task-card-sub { font-size: 12px; color: var(--text-light); margin-bottom: 4px; }
+.task-card-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+.task-card-date.overdue { color: #e63946; }
+.task-card-date.soon    { color: #f4a261; }
+.task-card-hints { display: flex; flex-direction: column; gap: 2px; }
+.task-hint { font-size: 11px; color: var(--text-light); line-height: 1.4; }
+.task-qty {
+  font-size: 11px;
+  background: var(--primary);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+.task-score {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-light);
+  padding: 8px 10px 8px 0;
+  align-self: flex-start;
+  min-width: 24px;
+  text-align: right;
+  margin-top: 6px;
+}
+
+/* ===== Plant Timeline Bar ===== */
+.ptl-wrap {
+  display: flex;
+  align-items: flex-start;
+  margin: 10px 0 16px;
+  padding: 14px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow-x: auto;
+  gap: 0;
+}
+.ptl-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 64px;
+  position: relative;
+}
+.ptl-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: #dce9e3;
+  z-index: 0;
+}
+.ptl-icon {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.ptl-label { font-size: 9px; font-weight: 700; color: var(--text-mid); margin-top: 4px; text-align: center; line-height: 1.2; }
+.ptl-date  { font-size: 10px; font-weight: 600; color: var(--text); text-align: center; margin-top: 2px; }
+.ptl-rel   { font-size: 9px; text-align: center; margin-top: 1px; }
+.ptl-rel.past    { color: #52b788; }
+.ptl-rel.future  { color: var(--text-light); }
+.ptl-rel.today   { color: #f4a261; font-weight: 700; }
+.ptl-rel.overdue { color: #e63946; font-weight: 700; }
+
 /* ===== Garden Plan View ===== */
 .garden-meta {
   display: grid;

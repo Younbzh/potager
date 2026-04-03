@@ -1,4 +1,4 @@
-const CACHE_NAME = 'potager-v4';
+const CACHE_NAME = 'potager-v5';
 const STATIC_ASSETS = [
   './manifest.json',
   './icon.svg',
@@ -13,6 +13,7 @@ const JS_FILES = [
   './plants-data.js',
   './weather.js',
   './badges.js',
+  './tasks.js',
 ];
 
 self.addEventListener('install', event => {

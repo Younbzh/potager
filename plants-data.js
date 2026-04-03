@@ -654,6 +654,35 @@ const PLANTS_DB = [
   }
 ];
 
+// ===== Timelines de culture (semis → acclimatation → repiquage → récolte) =====
+// weekToHarden / weekToTransplant : semaines depuis la date de semis
+// harvestDaysMin/Max : jours depuis la date de repiquage (ou semis si direct)
+const PLANT_TIMELINE = {
+  'tomate':     { plantType:'indoor',    weekToHarden:6,  weekToTransplant:8,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:60,  harvestDaysMax:120, biodynamicIdeal:'fruit'  },
+  'poivron':    { plantType:'indoor',    weekToHarden:8,  weekToTransplant:10, minOutdoorTemp:15, frostSensitive:true,  harvestDaysMin:70,  harvestDaysMax:110, biodynamicIdeal:'fruit'  },
+  'aubergine':  { plantType:'indoor',    weekToHarden:9,  weekToTransplant:11, minOutdoorTemp:18, frostSensitive:true,  harvestDaysMin:70,  harvestDaysMax:100, biodynamicIdeal:'fruit'  },
+  'courgette':  { plantType:'indoor',    weekToHarden:3,  weekToTransplant:4,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:45,  harvestDaysMax:80,  biodynamicIdeal:'fruit'  },
+  'concombre':  { plantType:'indoor',    weekToHarden:3,  weekToTransplant:4,  minOutdoorTemp:15, frostSensitive:true,  harvestDaysMin:45,  harvestDaysMax:75,  biodynamicIdeal:'fruit'  },
+  'basilic':    { plantType:'indoor',    weekToHarden:5,  weekToTransplant:7,  minOutdoorTemp:15, frostSensitive:true,  harvestDaysMin:30,  harvestDaysMax:120, biodynamicIdeal:'fleur'  },
+  'persil':     { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:70,  harvestDaysMax:150, biodynamicIdeal:'feuille' },
+  'ciboulette': { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:50,  harvestDaysMax:150, biodynamicIdeal:'feuille' },
+  'menthe':     { plantType:'perennial', weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:30,  harvestDaysMax:180, biodynamicIdeal:'feuille' },
+  'salade':     { plantType:'indoor',    weekToHarden:2,  weekToTransplant:3,  minOutdoorTemp:5,  frostSensitive:false, harvestDaysMin:40,  harvestDaysMax:65,  biodynamicIdeal:'feuille' },
+  'epinard':    { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:3, frostSensitive:false, harvestDaysMin:40,  harvestDaysMax:60,  biodynamicIdeal:'feuille' },
+  'carotte':    { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:70,  harvestDaysMax:90,  biodynamicIdeal:'racine'  },
+  'radis':      { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:20,  harvestDaysMax:30,  biodynamicIdeal:'racine'  },
+  'betterave':  { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:7, frostSensitive:false, harvestDaysMin:70,  harvestDaysMax:90,  biodynamicIdeal:'racine'  },
+  'oignon':     { plantType:'bulb',      weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:90,  harvestDaysMax:120, biodynamicIdeal:'racine'  },
+  'ail':        { plantType:'bulb',      weekToHarden:null,weekToTransplant:null,minOutdoorTemp:3, frostSensitive:false, harvestDaysMin:240, harvestDaysMax:280, biodynamicIdeal:'racine'  },
+  'haricot':    { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:15,frostSensitive:true,  harvestDaysMin:50,  harvestDaysMax:65,  biodynamicIdeal:'fruit'  },
+  'pois':       { plantType:'direct',    weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:60,  harvestDaysMax:90,  biodynamicIdeal:'fruit'  },
+  'fraise':     { plantType:'perennial', weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:45,  harvestDaysMax:90,  biodynamicIdeal:'fruit'  },
+  'capucine':   { plantType:'indoor',    weekToHarden:4,  weekToTransplant:6,  minOutdoorTemp:10, frostSensitive:true,  harvestDaysMin:50,  harvestDaysMax:150, biodynamicIdeal:'fleur'  },
+  'tagete':     { plantType:'indoor',    weekToHarden:4,  weekToTransplant:6,  minOutdoorTemp:10, frostSensitive:true,  harvestDaysMin:55,  harvestDaysMax:150, biodynamicIdeal:'fleur'  },
+  'bourrache':  { plantType:'indoor',    weekToHarden:2,  weekToTransplant:3,  minOutdoorTemp:8,  frostSensitive:false, harvestDaysMin:45,  harvestDaysMax:100, biodynamicIdeal:'fleur'  },
+  'tabac':      { plantType:'indoor',    weekToHarden:5,  weekToTransplant:7,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:80,  harvestDaysMax:160, biodynamicIdeal:'fleur'  },
+};
+
 // ===== Statuts de croissance =====
 const PLANT_STATUS = {
   semis:          { label: 'Semis / Godets',  emoji: '🌱', color: '#e8f5e9', textColor: '#2e7d32', next: 'croissance' },
