@@ -747,7 +747,7 @@ class PotagerApp {
       b.classList.toggle('active', b.dataset.view === view);
     });
 
-    const navViews = ['home', 'plants', 'tasks', 'moon', 'garden'];
+    const navViews = ['home', 'plants', 'tasks', 'moon', 'garden', 'family'];
     const showNav = navViews.includes(view);
     document.getElementById('app-nav').style.display = showNav ? 'flex' : 'none';
 
@@ -767,6 +767,7 @@ class PotagerApp {
       case 'calendar': this.renderHeader(header, 'Calendrier Lunaire', true); main.innerHTML = this.viewCalendar(); break;
       case 'moon':     this.renderHeader(header, 'Lune & Biodynamie', false); main.innerHTML = this.viewMoon(); break;
       case 'garden':   this.renderHeader(header, 'Plan du Jardin', false); main.innerHTML = await this.viewGarden(); break;
+      case 'family':   this.renderHeader(header, 'Notre Famille', false); main.innerHTML = await this.viewFamily(); break;
       case 'stats':    this.renderHeader(header, 'Statistiques & Badges', true); main.innerHTML = await this.viewStats(); break;
       case 'journal':  this.renderHeader(header, 'Journal de saison', true); main.innerHTML = await this.viewJournal(); break;
       case 'rotation': this.renderHeader(header, 'Rotation des cultures', true); main.innerHTML = this.viewRotation(); break;
@@ -1047,6 +1048,88 @@ class PotagerApp {
           <button class="kid-explore-btn" onclick="app.navigate('moon')">🌙<br>Lune</button>
           <button class="kid-explore-btn" onclick="app.navigate('garden')">🗺<br>Jardin</button>
         </div>
+      </div>
+    `;
+  }
+
+  // ===== FAMILY VIEW =====
+  async viewFamily() {
+    const profiles = ProfileManager.getAll();
+    const active   = ProfileManager.getActive();
+    const plants   = await db.getPlants();
+    const growing  = plants.filter(p => p.status !== 'removed');
+
+    if (profiles.length === 0) {
+      return `<div class="empty-state">
+        <span class="empty-icon">👨‍👩‍👧</span>
+        <h3>Aucun membre</h3>
+        <p>Ajoutez des membres de la famille pour voir leur progression ici.</p>
+        <button class="btn btn-primary mt-12" id="fam-add-first">+ Ajouter un membre</button>
+      </div>`;
+    }
+
+    const sorted = [...profiles].sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    const medals = ['🥇','🥈','🥉'];
+
+    const memberHTML = sorted.map((p, i) => {
+      const prog     = ProfileManager.getLevelProgress(p.xp || 0);
+      const isActive = p.id === active?.id;
+      const adopted  = growing.filter(pl => pl.ownerId === p.id);
+      const isKid    = p.role === 'kid';
+
+      return `
+        <div class="fam-card ${isActive ? 'fam-card-active' : ''}">
+          <div class="fam-card-top">
+            <span class="fam-rank">${medals[i] || `${i + 1}`}</span>
+            <span class="fam-emoji">${p.emoji}</span>
+            <div class="fam-info">
+              <div class="fam-name">${p.name} ${isActive ? '<span class="fam-you">moi</span>' : ''}</div>
+              <div class="fam-role">${isKid ? '🧒 Enfant' : '👨‍🌾 Adulte'} · ${prog.level.emoji} ${prog.level.label}</div>
+            </div>
+            <div class="fam-xp-pill">${p.xp || 0} XP</div>
+          </div>
+
+          <div class="fam-xp-bar-wrap">
+            <div class="fam-xp-bar-fill" style="width:${prog.pct}%"></div>
+          </div>
+          <div class="fam-xp-label">
+            ${prog.xpToNext > 0
+              ? `${prog.xp} / ${prog.next?.min} XP → <strong>${prog.next?.label}</strong>`
+              : '🏆 Niveau maximum atteint !'}
+          </div>
+
+          ${adopted.length > 0 ? `
+            <div class="fam-adopted">
+              <span class="fam-adopted-label">🌱 Plantes adoptées</span>
+              <div class="fam-adopted-chips">
+                ${adopted.map(pl => {
+                  const dbP = PLANTS_DB.find(d => d.id === pl.dbId);
+                  return `<span class="fam-chip">${pl.customEmoji || dbP?.emoji || '🌱'} ${pl.customName || dbP?.name || 'Plante'}${pl.variety ? ' · ' + pl.variety : ''}</span>`;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="fam-rewards">
+            <div class="fam-reward-item"><span>✅</span><span>Tâche</span><strong>+20 XP</strong></div>
+            <div class="fam-reward-item"><span>📝</span><span>Note</span><strong>+10 XP</strong></div>
+            <div class="fam-reward-item"><span>🧺</span><span>Récolte</span><strong>+25 XP</strong></div>
+            <div class="fam-reward-item"><span>🌱</span><span>Plante</span><strong>+15 XP</strong></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="fam-view">
+        <div class="fam-header-row">
+          <p class="fam-subtitle">Progression de chaque jardinier</p>
+          <button class="btn btn-invite btn-sm" id="fam-btn-invite">📤 Inviter</button>
+        </div>
+
+        ${memberHTML}
+
+        <button class="btn btn-outline btn-full mt-12" id="fam-btn-add">+ Ajouter un membre</button>
       </div>
     `;
   }
@@ -2308,6 +2391,12 @@ class PotagerApp {
 
     if (view === 'stats') {
       on('btn-go-rotation', 'click', () => this.navigate('rotation'));
+    }
+
+    if (view === 'family') {
+      on('fam-btn-invite', 'click', () => this.showInviteModal());
+      on('fam-btn-add',    'click', () => this.showAddProfileModal());
+      on('fam-add-first',  'click', () => this.showAddProfileModal());
     }
 
     if (view === 'journal') {

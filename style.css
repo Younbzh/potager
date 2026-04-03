@@ -2407,6 +2407,113 @@ img { max-width: 100%; }
 }
 .btn-invite:active { background: #fff3cd; }
 
+/* ===== Family View ===== */
+.fam-view { padding-bottom: 24px; }
+
+.fam-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.fam-subtitle { font-size: 14px; color: var(--text-mid); }
+
+.fam-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: border-color var(--transition);
+}
+.fam-card-active { border-color: var(--primary); }
+
+.fam-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.fam-rank  { font-size: 22px; width: 28px; text-align: center; }
+.fam-emoji { font-size: 36px; }
+.fam-info  { flex: 1; }
+.fam-name  { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.fam-role  { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+.fam-you {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--primary);
+  color: white;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.fam-xp-pill {
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.fam-xp-bar-wrap {
+  height: 8px;
+  background: var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.fam-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #74c69d);
+  border-radius: 5px;
+  transition: width 0.7s ease;
+}
+.fam-xp-label {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+.fam-xp-label strong { color: var(--primary); }
+
+.fam-adopted { margin-bottom: 12px; }
+.fam-adopted-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 6px;
+}
+.fam-adopted-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fam-chip {
+  font-size: 12px;
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-light);
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+
+.fam-rewards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.fam-reward-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: center;
+}
+.fam-reward-item strong { color: var(--primary); font-size: 11px; }
+.fam-reward-item span:first-child { font-size: 18px; }
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
