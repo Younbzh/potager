@@ -33,8 +33,8 @@
 //
 // 4. Remplissez les deux valeurs ci-dessous et sauvegardez.
 
-const SUPABASE_URL  = 'https://VOTRE_PROJECT.supabase.co';
-const SUPABASE_ANON = 'VOTRE_ANON_KEY';
+const SUPABASE_URL  = 'https://wcwmavxphndgcxgrxazz.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indjd21hdnhwaG5kZ2N4Z3J4YXp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMTEwNDMsImV4cCI6MjA5MDc4NzA0M30.F69hg-dwQh8skpybU-6JOpOP-bOcChPQFmnmBPFAa_s';
 
 const { createClient } = window.supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON);
