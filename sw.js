@@ -1,4 +1,4 @@
-const CACHE_NAME = 'potager-v2';
+const CACHE_NAME = 'potager-v3';
 const ASSETS = [
   './index.html',
   './style.css',
