@@ -693,7 +693,7 @@ Object.entries(BOTANICAL_FAMILIES).forEach(([key, fam]) =>
 // L'allée de 90 cm entre chaque zone est gérée dans le rendu.
 const GARDEN_ZONES = [
   { id: 'fraises',      label: 'Bande Fraises',           emoji: '🍓', type: 'perennis', mSize: 1,   color: '#ffcdd2', note: '1 m depuis la haie Nord' },
-  { id: 'B1',           label: 'B1 — CBD',                emoji: '🌿', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Hügelkultur — variétés Weedy en attente' },
+  { id: 'B1',           label: 'B1 — Médicinale',         emoji: '🌿', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Hügelkultur — variétés médicinales en attente' },
   { id: 'B2',           label: 'B2 — Tomates',            emoji: '🍅', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Tomates + Basilic Grand vert + Tagètes Double Pinwheel' },
   { id: 'B3',           label: 'B3 — Courgettes',         emoji: '🥒', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Courgettes + Courge · Tabac Ghost Pipes intercalé B2/B3' },
   { id: 'B4',           label: 'B4 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
