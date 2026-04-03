@@ -12,6 +12,7 @@ class PotagerApp {
   async init() {
     await db.init();
     await this.migrateDeduplicateBatch();
+    await this.autoImportAprilBatch();
     this.setupNav();
     this.registerSW();
     BadgeSystem.trackStreak();
@@ -75,6 +76,44 @@ class PotagerApp {
 
     // Always reset import flag so the banner is visible to re-import if needed
     localStorage.removeItem('semis-20260402-imported');
+  }
+
+  // Auto-import April 2 batch if not already done
+  async autoImportAprilBatch() {
+    if (localStorage.getItem('auto-import-april2-v1')) return;
+
+    const BATCH = [
+      { dbId: 'basilic',   variety: 'Grand vert',          qty: 4, location: 'B2',          note: 'En godets — entre les tomates' },
+      { dbId: 'capucine',  variety: 'Empress of India',    qty: 4, location: 'bordures',     note: 'Naine — bordure de toutes les planches' },
+      { dbId: 'capucine',  variety: 'Couleurs mélangées',  qty: 4, location: 'piquet Ouest', note: 'Grimpante — piquet côté Ouest' },
+      { dbId: 'tagete',    variety: 'Double Pinwheel',     qty: 4, location: 'B2',           note: 'Au pied des tomates en B2' },
+      { dbId: 'bourrache', variety: 'Bleue',               qty: 4, location: 'bordures',     note: 'Bordure de toutes les planches' },
+      { dbId: 'salade',    variety: 'Buttercrunch',        qty: 3, location: 'terre-plate',  note: 'Espaces libres zone terre plate' },
+      { dbId: 'tabac',     variety: 'Ghost Pipes',         qty: 3, location: 'B2-B3',        note: 'Intercalé entre B2 et B3' },
+    ];
+
+    try {
+      const existing = await db.getPlants();
+      for (const b of BATCH) {
+        const alreadyIn = existing.some(p =>
+          p.dbId === b.dbId && p.variety === b.variety && p.plantedAt === '2026-04-02'
+        );
+        if (alreadyIn) continue;
+        const plantId = await db.addPlant({
+          dbId: b.dbId,
+          variety: b.variety,
+          plantedAt: '2026-04-02',
+          location: b.location,
+          status: 'growing',
+          quantity: b.qty,
+        });
+        await db.addNote(plantId, b.note, 'note');
+      }
+      localStorage.setItem('auto-import-april2-v1', '1');
+      localStorage.setItem('semis-20260402-imported', '1');
+    } catch (e) {
+      console.warn('Auto-import April batch failed:', e);
+    }
   }
 
   async checkBadges() {

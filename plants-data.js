@@ -692,16 +692,19 @@ Object.entries(BOTANICAL_FAMILIES).forEach(([key, fam]) =>
 // mSize = profondeur en mètres dans l'axe N-S.
 // L'allée de 90 cm entre chaque zone est gérée dans le rendu.
 const GARDEN_ZONES = [
-  { id: 'fraises',  label: 'Bande Fraises',          emoji: '🍓', type: 'perennis', mSize: 1,   color: '#ffcdd2', note: '1 m depuis la haie Nord' },
-  { id: 'B1',       label: 'B1 — CBD',               emoji: '🌿', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Hügelkultur — variétés Weedy en attente' },
-  { id: 'B2',       label: 'B2 — Tomates',           emoji: '🍅', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Tomates + Basilic + Tagètes + Tabac intercalé B2/B3' },
-  { id: 'B3',       label: 'B3 — Courgettes',        emoji: '🥒', type: 'butte',   mSize: 1,   color: '#c8e6c9', note: 'Courgettes + Courge' },
-  { id: 'B4',       label: 'B4 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
-  { id: 'B5',       label: 'B5 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
-  { id: 'B6',       label: 'B6 — Repos 2026',        emoji: '💤', type: 'repos',   mSize: 1,   color: '#eeeeee', note: 'Stabilisation — fumier poules automne' },
-  { id: 'P1',       label: 'P1 — Carottes / Oignons',emoji: '🥕', type: 'flat',    mSize: 1,   color: '#fff9c4', note: 'No-dig carton-paille' },
-  { id: 'P2',       label: 'P2 — Pois / Haricots',  emoji: '🫘', type: 'flat',    mSize: 1,   color: '#fff9c4', note: 'Succession : pois printemps → haricots été' },
-  { id: 'melons',   label: 'Melons + PDT',           emoji: '🍈', type: 'flat',    mSize: 1.9, color: '#fff9c4', note: 'Zone large ~1,9 m — melons + pommes de terre' },
+  { id: 'fraises',      label: 'Bande Fraises',           emoji: '🍓', type: 'perennis', mSize: 1,   color: '#ffcdd2', note: '1 m depuis la haie Nord' },
+  { id: 'B1',           label: 'B1 — CBD',                emoji: '🌿', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Hügelkultur — variétés Weedy en attente' },
+  { id: 'B2',           label: 'B2 — Tomates',            emoji: '🍅', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Tomates + Basilic Grand vert + Tagètes Double Pinwheel' },
+  { id: 'B3',           label: 'B3 — Courgettes',         emoji: '🥒', type: 'butte',    mSize: 1,   color: '#c8e6c9', note: 'Courgettes + Courge · Tabac Ghost Pipes intercalé B2/B3' },
+  { id: 'B4',           label: 'B4 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
+  { id: 'B5',           label: 'B5 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
+  { id: 'B6',           label: 'B6 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — fumier poules automne' },
+  { id: 'P1',           label: 'P1 — Carottes / Oignons', emoji: '🥕', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'No-dig carton-paille' },
+  { id: 'P2',           label: 'P2 — Pois / Haricots',   emoji: '🫘', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Succession : pois printemps → haricots été' },
+  { id: 'terre-plate',  label: 'Terre plate',             emoji: '🥗', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Espaces libres — Salade Buttercrunch' },
+  { id: 'melons',       label: 'Melons + PDT',            emoji: '🍈', type: 'flat',     mSize: 1.9, color: '#fff9c4', note: 'Zone large ~1,9 m — melons + pommes de terre' },
+  { id: 'bordures',     label: 'Bordures',                emoji: '🌸', type: 'bordure',  mSize: 0.5, color: '#fce4ec', note: 'Capucine Empress of India + Bourrache bleue — toutes les planches' },
+  { id: 'piquet Ouest', label: 'Piquet Ouest',            emoji: '🌸', type: 'bordure',  mSize: 0.5, color: '#fce4ec', note: 'Capucine Couleurs mélangées — grimpante sur piquet côté Ouest' },
 ];
 
 // ===== Enrichissement Kokopelli : on injecte les données après définition du tableau
