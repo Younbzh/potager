@@ -1,3 +1,75 @@
+// ===== Profile & Family System =====
+const ProfileManager = (() => {
+  const KEY = 'potager-profiles';
+  const ACTIVE_KEY = 'potager-active-profile';
+
+  const LEVELS = [
+    { min: 0,    label: 'Apprenti',         emoji: '🌱' },
+    { min: 100,  label: 'Débutant',         emoji: '🌿' },
+    { min: 300,  label: 'Jardinier',        emoji: '🥕' },
+    { min: 600,  label: 'Cultivateur',      emoji: '🍅' },
+    { min: 1000, label: 'Expert',           emoji: '🌻' },
+    { min: 1800, label: 'Maître Jardinier', emoji: '👨‍🌾' },
+  ];
+
+  const XP_REWARDS = {
+    task_complete:  20,
+    note_added:     10,
+    photo_note:     20,
+    harvest_logged: 25,
+    plant_adopted:   5,
+    plant_added:    15,
+  };
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  }
+  function save(profiles) { localStorage.setItem(KEY, JSON.stringify(profiles)); }
+
+  function getAll() { return load(); }
+
+  function getActive() {
+    const profiles = load();
+    const id = localStorage.getItem(ACTIVE_KEY);
+    return profiles.find(p => p.id === id) || profiles[0] || null;
+  }
+
+  function setActive(id) { localStorage.setItem(ACTIVE_KEY, id); }
+
+  function create(name, emoji, role = 'kid') {
+    const profiles = load();
+    const id = 'profile-' + Date.now();
+    profiles.push({ id, name, emoji, role, xp: 0, createdAt: new Date().toISOString() });
+    save(profiles);
+    return id;
+  }
+
+  function addXp(profileId, action) {
+    if (!profileId) return 0;
+    const profiles = load();
+    const p = profiles.find(x => x.id === profileId);
+    if (!p) return 0;
+    const earned = XP_REWARDS[action] || 0;
+    p.xp = (p.xp || 0) + earned;
+    save(profiles);
+    return earned;
+  }
+
+  function getLevelProgress(xp) {
+    const idx = [...LEVELS].reverse().findIndex(l => xp >= l.min);
+    const realIdx = LEVELS.length - 1 - idx;
+    const current = LEVELS[Math.max(realIdx, 0)];
+    const next = LEVELS[Math.min(realIdx + 1, LEVELS.length - 1)];
+    if (current === next) return { level: current, pct: 100, xpToNext: 0, xp };
+    const pct = Math.round(((xp - current.min) / (next.min - current.min)) * 100);
+    return { level: current, next, pct, xpToNext: next.min - xp, xp };
+  }
+
+  function needsSetup() { return load().length === 0; }
+
+  return { getAll, getActive, setActive, create, addXp, getLevelProgress, needsSetup, XP_REWARDS };
+})();
+
 // ===== Main Application =====
 class PotagerApp {
   constructor() {
@@ -18,6 +90,13 @@ class PotagerApp {
     BadgeSystem.trackStreak();
     this.checkNotifications();
 
+    if (ProfileManager.needsSetup()) {
+      this.showFamilySetup();
+      return;
+    }
+
+    this.updateHeaderProfile();
+
     const shared = this.checkSharedUrl();
     if (shared) {
       this.navigate('add-plant');
@@ -25,8 +104,210 @@ class PotagerApp {
       this.navigate('home');
     }
 
-    // Check badges after a short delay (let views render first)
     setTimeout(() => this.checkBadges(), 1200);
+  }
+
+  updateHeaderProfile() {
+    const profile = ProfileManager.getActive();
+    if (!profile) return;
+    const header = document.getElementById('app-header');
+    if (!header) return;
+    // Inject avatar button if not already present
+    if (!header.querySelector('#profile-avatar-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'profile-avatar-btn';
+      btn.className = 'profile-avatar-btn';
+      btn.title = profile.name;
+      btn.textContent = profile.emoji;
+      btn.addEventListener('click', () => this.showProfileSwitcher());
+      header.appendChild(btn);
+    } else {
+      header.querySelector('#profile-avatar-btn').textContent = profile.emoji;
+    }
+  }
+
+  // ===== FAMILY SETUP (first launch) =====
+  showFamilySetup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay family-setup-overlay';
+    overlay.style.background = 'linear-gradient(135deg,#1b4332 0%,#2d6a4f 100%)';
+    overlay.innerHTML = `
+      <div class="family-setup-sheet">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="font-size:48px;margin-bottom:8px">🌱</div>
+          <h2 style="font-size:22px;font-weight:800;color:var(--text)">Bienvenue au Potager !</h2>
+          <p style="font-size:14px;color:var(--text-mid);margin-top:6px">
+            Qui va jardiner ? Ajoutez les membres de votre famille.
+          </p>
+        </div>
+        <div id="setup-profiles-list" class="setup-profiles-list"></div>
+        <div class="setup-add-row">
+          <input class="form-input" id="setup-name" placeholder="Prénom…" maxlength="20">
+          <button class="setup-emoji-btn" id="setup-emoji-pick">🌱</button>
+          <select class="form-select setup-role-sel" id="setup-role">
+            <option value="adult">👨‍🌾 Adulte</option>
+            <option value="kid" selected>🧒 Enfant</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="setup-add-member">Ajouter</button>
+        </div>
+        <div id="setup-emoji-grid" class="setup-emoji-grid" style="display:none">
+          ${['🌱','🌿','🌻','🍅','🥕','🐛','🦋','🐝','🌸','🍓','🧑‍🌾','👨‍🌾','👩‍🌾','🌈','⭐','🔥'].map(e =>
+            `<button class="setup-emoji-opt">${e}</button>`
+          ).join('')}
+        </div>
+        <button class="btn btn-primary btn-full" id="setup-done" style="display:none;margin-top:20px">
+          Commencer l'aventure →
+        </button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    let pickedEmoji = '🌱';
+    const list = overlay.querySelector('#setup-profiles-list');
+    const doneBtn = overlay.querySelector('#setup-done');
+    const emojiBtn = overlay.querySelector('#setup-emoji-pick');
+    const emojiGrid = overlay.querySelector('#setup-emoji-grid');
+
+    overlay.querySelectorAll('.setup-emoji-opt').forEach(b => {
+      b.addEventListener('click', () => {
+        pickedEmoji = b.textContent;
+        emojiBtn.textContent = pickedEmoji;
+        emojiGrid.style.display = 'none';
+      });
+    });
+    emojiBtn.addEventListener('click', () => {
+      emojiGrid.style.display = emojiGrid.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    const refreshList = () => {
+      const profiles = ProfileManager.getAll();
+      list.innerHTML = profiles.map(p => `
+        <div class="setup-profile-item">
+          <span style="font-size:24px">${p.emoji}</span>
+          <span style="font-weight:700">${p.name}</span>
+          <span class="setup-role-badge">${p.role === 'adult' ? '👨‍🌾 Adulte' : '🧒 Enfant'}</span>
+        </div>
+      `).join('');
+      doneBtn.style.display = profiles.length ? '' : 'none';
+    };
+
+    overlay.querySelector('#setup-add-member').addEventListener('click', () => {
+      const name = overlay.querySelector('#setup-name').value.trim();
+      const role = overlay.querySelector('#setup-role').value;
+      if (!name) return;
+      const id = ProfileManager.create(name, pickedEmoji, role);
+      if (ProfileManager.getAll().length === 1) ProfileManager.setActive(id);
+      overlay.querySelector('#setup-name').value = '';
+      refreshList();
+    });
+
+    overlay.querySelector('#setup-done').addEventListener('click', () => {
+      overlay.remove();
+      this.updateHeaderProfile();
+      this.navigate('home');
+      setTimeout(() => this.checkBadges(), 1200);
+    });
+  }
+
+  // ===== PROFILE SWITCHER =====
+  showProfileSwitcher() {
+    const profiles = ProfileManager.getAll();
+    const active = ProfileManager.getActive();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">👨‍👩‍👧‍👦 Qui jardine ?</div>
+        <div class="profile-list">
+          ${profiles.map(p => {
+            const prog = ProfileManager.getLevelProgress(p.xp || 0);
+            return `
+              <div class="profile-item ${p.id === active?.id ? 'active' : ''}" data-id="${p.id}">
+                <span class="profile-emoji">${p.emoji}</span>
+                <div class="profile-item-info">
+                  <div class="profile-item-name">${p.name}</div>
+                  <div class="profile-item-level">${prog.level.emoji} ${prog.level.label} · ${p.xp || 0} XP</div>
+                  <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${prog.pct}%"></div></div>
+                </div>
+                ${p.id === active?.id ? '<span class="profile-check">✓</span>' : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <button class="btn btn-outline btn-full mt-12" id="btn-add-profile">+ Ajouter un membre</button>
+      </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('.profile-item').forEach(item => {
+      item.addEventListener('click', () => {
+        ProfileManager.setActive(item.dataset.id);
+        this.updateHeaderProfile();
+        overlay.remove();
+        this.navigate('home');
+      });
+    });
+
+    overlay.querySelector('#btn-add-profile').addEventListener('click', () => {
+      overlay.remove();
+      this.showAddProfileModal();
+    });
+  }
+
+  showAddProfileModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-title">Nouveau membre</div>
+        <div class="form-group">
+          <label class="form-label">Prénom</label>
+          <input class="form-input" id="new-profile-name" placeholder="Prénom…" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Avatar</label>
+          <div class="setup-emoji-grid" style="display:flex">
+            ${['🌱','🌿','🌻','🍅','🥕','🐛','🦋','🐝','🌸','🍓','🧑‍🌾','👨‍🌾','👩‍🌾','🌈','⭐','🔥'].map(e =>
+              `<button class="setup-emoji-opt">${e}</button>`
+            ).join('')}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rôle</label>
+          <select class="form-select" id="new-profile-role">
+            <option value="adult">👨‍🌾 Adulte</option>
+            <option value="kid" selected>🧒 Enfant</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-save-profile">Créer le profil</button>
+      </div>
+    `;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    let pickedEmoji = '🌱';
+    overlay.querySelectorAll('.setup-emoji-opt').forEach(b => {
+      b.addEventListener('click', () => {
+        overlay.querySelectorAll('.setup-emoji-opt').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        pickedEmoji = b.textContent;
+      });
+    });
+
+    overlay.querySelector('#btn-save-profile').addEventListener('click', () => {
+      const name = overlay.querySelector('#new-profile-name').value.trim();
+      const role = overlay.querySelector('#new-profile-role').value;
+      if (!name) return;
+      const id = ProfileManager.create(name, pickedEmoji, role);
+      ProfileManager.setActive(id);
+      this.updateHeaderProfile();
+      overlay.remove();
+      this.navigate('home');
+    });
   }
 
   // One-time migration: merge duplicate batch plants created by old import code
@@ -298,6 +579,8 @@ class PotagerApp {
 
   // ===== HOME VIEW =====
   async viewHome() {
+    const profile = ProfileManager.getActive();
+    if (profile?.role === 'kid') return this.viewKidHome(profile);
     const now = new Date();
     const phase = MoonCalc.getPhase(now);
     const phaseName = MoonCalc.getPhaseName(phase);
@@ -433,6 +716,146 @@ class PotagerApp {
 
       <button class="fab" id="fab-quick-note" title="Note rapide">✏️</button>
     `;
+  }
+
+  // ===== KID HOME VIEW =====
+  async viewKidHome(profile) {
+    const prog = ProfileManager.getLevelProgress(profile.xp || 0);
+    const allProfiles = ProfileManager.getAll();
+    const sorted = [...allProfiles].sort((a, b) => (b.xp || 0) - (a.xp || 0));
+
+    // Adopted plants
+    const allPlants = await db.getPlants();
+    const owned = allPlants.filter(p => p.ownerId === profile.id && p.status !== 'removed');
+
+    // Tasks as quests
+    const weatherData = await Weather.fetch().catch(() => null);
+    const tasks = await TaskEngine.generateTasks(weatherData);
+    const quests = tasks.filter(t => !t.checked).slice(0, 3);
+
+    const questTypeLabels = {
+      acclimatation: { emoji: '🌤', text: 'Sortir dehors pour s\'habituer' },
+      repiquage:     { emoji: '🌱', text: 'Planter en pleine terre' },
+      recolte:       { emoji: '🧺', text: 'Cueillir et récolter' },
+    };
+
+    const leaderHTML = sorted.map((p, i) => {
+      const pProg = ProfileManager.getLevelProgress(p.xp || 0);
+      const isMe = p.id === profile.id;
+      const medals = ['🥇','🥈','🥉'];
+      return `
+        <div class="kid-leader-item ${isMe ? 'me' : ''}">
+          <span class="kid-leader-rank">${medals[i] || `${i+1}`}</span>
+          <span style="font-size:22px">${p.emoji}</span>
+          <div class="kid-leader-info">
+            <div class="kid-leader-name">${p.name}${isMe ? ' (moi)' : ''}</div>
+            <div class="kid-leader-level">${pProg.level.emoji} ${pProg.level.label}</div>
+          </div>
+          <span class="kid-leader-xp">${p.xp || 0} XP</span>
+        </div>
+      `;
+    }).join('');
+
+    const ownedHTML = owned.length === 0
+      ? `<div class="kid-adopt-empty">
+           <span style="font-size:32px">🌱</span>
+           <p>Tu n'as pas encore adopté de plante !<br>Va dans une fiche et clique <strong>Adopter</strong>.</p>
+         </div>`
+      : owned.map(p => {
+          const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+          const emoji = p.customEmoji || dbP?.emoji || '🌱';
+          const name = p.customName || dbP?.name || 'Plante';
+          return `<div class="kid-plant-chip" data-plant-id="${p.id}">
+            <span style="font-size:22px">${emoji}</span>
+            <span>${name}${p.variety ? ' · ' + p.variety : ''}</span>
+          </div>`;
+        }).join('');
+
+    const questsHTML = quests.length === 0
+      ? `<div class="kid-quest-empty">🎉 Aucune mission urgente ! Profites-en pour observer le jardin.</div>`
+      : quests.map(t => {
+          const def = TaskEngine.TASK_DEF[t.type];
+          const qt = questTypeLabels[t.type] || { emoji: def.emoji, text: def.label };
+          const urgClass = t.daysUntil <= 0 ? 'overdue' : t.daysUntil <= 3 ? 'soon' : 'ok';
+          return `
+            <div class="kid-quest-card ${urgClass}" data-task-id="${t.id}" data-plant-id="${t.plantId}">
+              <div class="kid-quest-top">
+                <span class="kid-quest-emoji">${qt.emoji}</span>
+                <div class="kid-quest-info">
+                  <div class="kid-quest-plant">${t.plantEmoji} ${t.plantName}${t.variety ? ' · ' + t.variety : ''}</div>
+                  <div class="kid-quest-action">${qt.text}</div>
+                </div>
+                <span class="kid-quest-xp">+20 XP</span>
+              </div>
+              <div class="kid-quest-date">${
+                t.daysUntil < 0 ? `En retard de ${Math.abs(t.daysUntil)} jours !`
+                : t.daysUntil === 0 ? `Aujourd'hui !`
+                : t.daysUntil === 1 ? 'Demain'
+                : `Dans ${t.daysUntil} jours`
+              }</div>
+              <label class="kid-quest-check-wrap">
+                <input type="checkbox" class="task-check" data-task-id="${t.id}" ${t.checked ? 'checked' : ''}>
+                <span class="kid-quest-check-label">${t.checked ? '✅ Fait !' : 'Marquer comme fait'}</span>
+              </label>
+            </div>
+          `;
+        }).join('');
+
+    return `
+      <div class="kid-home">
+        <div class="kid-hero">
+          <span class="kid-hero-emoji">${profile.emoji}</span>
+          <div class="kid-hero-info">
+            <div class="kid-hero-name">Salut ${profile.name} ! 👋</div>
+            <div class="kid-hero-level">${prog.level.emoji} ${prog.level.label}</div>
+          </div>
+          <div class="kid-hero-xp">${profile.xp || 0} XP</div>
+        </div>
+
+        <div class="kid-xp-section">
+          <div class="kid-xp-label">
+            <span>Progression</span>
+            ${prog.xpToNext > 0 ? `<span>${prog.xpToNext} XP pour <strong>${prog.next?.label}</strong></span>` : '<span>Niveau max ! 🏆</span>'}
+          </div>
+          <div class="kid-xp-bar"><div class="kid-xp-fill" style="width:${prog.pct}%"></div></div>
+        </div>
+
+        <div class="kid-section-title">🎯 Missions du jour</div>
+        <div class="kid-quests">${questsHTML}</div>
+
+        <div class="kid-section-title">🌱 Mes plantes adoptées</div>
+        <div class="kid-owned">${ownedHTML}</div>
+
+        <div class="kid-section-title">🏆 Classement famille</div>
+        <div class="kid-leaderboard">${leaderHTML}</div>
+
+        <div class="kid-explore-row">
+          <button class="kid-explore-btn" onclick="app.navigate('plants')">🌿<br>Plantes</button>
+          <button class="kid-explore-btn" onclick="app.navigate('tasks')">📋<br>Tâches</button>
+          <button class="kid-explore-btn" onclick="app.navigate('moon')">🌙<br>Lune</button>
+          <button class="kid-explore-btn" onclick="app.navigate('garden')">🗺<br>Jardin</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Show a floating +XP toast
+  showXpToast(earned, action) {
+    if (!earned) return;
+    const labels = {
+      task_complete:  'Tâche accomplie !',
+      note_added:     'Note ajoutée',
+      photo_note:     'Photo ajoutée',
+      harvest_logged: 'Récolte enregistrée',
+      plant_added:    'Plante ajoutée',
+      plant_adopted:  'Plante adoptée !',
+    };
+    const toast = document.createElement('div');
+    toast.className = 'xp-toast';
+    toast.innerHTML = `<span class="xp-toast-amt">+${earned} XP</span> <span class="xp-toast-label">${labels[action] || ''}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('out'), 1800);
+    setTimeout(() => toast.remove(), 2300);
   }
 
   plantCardHTML(plant) {
@@ -588,6 +1011,16 @@ class PotagerApp {
           🔄 Resemer
         </button>
         <button class="fab-inline" id="fab-add-note" title="Ajouter une note">✏️ Note</button>
+      </div>
+
+      <div style="margin-top:8px">
+        ${plant.ownerId
+          ? `<div class="adopt-badge">
+               <span>${ProfileManager.getAll().find(p => p.id === plant.ownerId)?.emoji || '🌱'}</span>
+               <span>Adoptée par <strong>${ProfileManager.getAll().find(p => p.id === plant.ownerId)?.name || '…'}</strong></span>
+             </div>`
+          : `<button class="btn btn-adopt" id="btn-adopt-plant">🌱 Adopter cette plante</button>`
+        }
       </div>
     `;
   }
@@ -1459,10 +1892,45 @@ class PotagerApp {
       document.querySelectorAll('#reminders-list .reminder-item').forEach(item => {
         item.addEventListener('click', () => this.navigate('plant-detail', { id: parseInt(item.dataset.plantId) }));
       });
-      // Async weather inject
-      Weather.fetch().then(data => {
-        const widget = document.getElementById('weather-widget');
-        if (widget) widget.outerHTML = Weather.render(data);
+      // Async weather inject (adult home only)
+      if (!document.querySelector('.kid-home')) {
+        Weather.fetch().then(data => {
+          const widget = document.getElementById('weather-widget');
+          if (widget) widget.outerHTML = Weather.render(data);
+        });
+      }
+
+      // Kid home: quest checkboxes
+      document.querySelectorAll('.kid-home .task-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          TaskEngine.toggleChecked(cb.dataset.taskId);
+          const label = cb.nextElementSibling;
+          if (label) label.textContent = cb.checked ? '✅ Fait !' : 'Marquer comme fait';
+          if (cb.checked) {
+            const profile = ProfileManager.getActive();
+            if (profile) {
+              const earned = ProfileManager.addXp(profile.id, 'task_complete');
+              this.showXpToast(earned, 'task_complete');
+            }
+          }
+        });
+      });
+
+      // Kid home: quest card click → plant detail
+      document.querySelectorAll('.kid-quest-card').forEach(card => {
+        card.addEventListener('click', e => {
+          if (e.target.type === 'checkbox' || e.target.closest('label')) return;
+          const plantId = parseInt(card.dataset.plantId);
+          if (plantId) this.navigate('plant-detail', { id: plantId });
+        });
+      });
+
+      // Kid home: owned plant click → plant detail
+      document.querySelectorAll('.kid-plant-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const plantId = parseInt(chip.dataset.plantId);
+          if (plantId) this.navigate('plant-detail', { id: plantId });
+        });
       });
     }
 
@@ -1492,6 +1960,19 @@ class PotagerApp {
       });
 
       on('fab-add-note', 'click', () => this.navigate('add-note', { plantId: params.id }));
+
+      on('btn-adopt-plant', 'click', async () => {
+        const profile = ProfileManager.getActive();
+        if (!profile) return;
+        const plant = await db.getPlant(params.id);
+        if (!plant) return;
+        plant.ownerId = profile.id;
+        await db.updatePlant(plant);
+        const earned = ProfileManager.addXp(profile.id, 'plant_adopted');
+        this.showXpToast(earned, 'plant_adopted');
+        this.navigate('plant-detail', { id: params.id });
+      });
+
       on('btn-resemer', 'click', async () => {
         const plant = await db.getPlant(params.id);
         if (!plant) return;
@@ -1595,6 +2076,13 @@ class PotagerApp {
           TaskEngine.toggleChecked(id);
           const card = cb.closest('.task-card');
           if (card) card.classList.toggle('checked', cb.checked);
+          if (cb.checked) {
+            const profile = ProfileManager.getActive();
+            if (profile) {
+              const earned = ProfileManager.addXp(profile.id, 'task_complete');
+              this.showXpToast(earned, 'task_complete');
+            }
+          }
         });
       });
       document.querySelectorAll('.task-card').forEach(card => {
@@ -1803,6 +2291,11 @@ class PotagerApp {
 
         const plantId = await db.addPlant(plantData);
         if (noteText) await db.addNote(plantId, noteText, 'note');
+        const profile = ProfileManager.getActive();
+        if (profile) {
+          const earned = ProfileManager.addXp(profile.id, 'plant_added');
+          this.showXpToast(earned, 'plant_added');
+        }
         this.checkBadges();
         this.navigate('plants');
       });
@@ -1815,6 +2308,12 @@ class PotagerApp {
         const plantId = parseInt(e.target.dataset.plantId);
         if (!text) { alert('Veuillez saisir une note.'); return; }
         await db.addNote(plantId, text, type);
+        const profile = ProfileManager.getActive();
+        if (profile) {
+          const action = type === 'photo' ? 'photo_note' : 'note_added';
+          const earned = ProfileManager.addXp(profile.id, action);
+          this.showXpToast(earned, action);
+        }
         this.activeTab = 'notes';
         this.navigate('plant-detail', { id: plantId });
       });
@@ -1827,6 +2326,11 @@ class PotagerApp {
         const plantId = parseInt(e.target.dataset.plantId);
         if (!qty) { alert('Veuillez saisir une quantité.'); return; }
         await db.addHarvest(plantId, qty, note);
+        const profile = ProfileManager.getActive();
+        if (profile) {
+          const earned = ProfileManager.addXp(profile.id, 'harvest_logged');
+          this.showXpToast(earned, 'harvest_logged');
+        }
         this.activeTab = 'recoltes';
         this.navigate('plant-detail', { id: plantId });
       });
@@ -2488,6 +2992,12 @@ class PotagerApp {
         quantity: qty,
         growthStatus: 'semis',
       });
+
+      const profile = ProfileManager.getActive();
+      if (profile) {
+        const earned = ProfileManager.addXp(profile.id, 'plant_added');
+        this.showXpToast(earned, 'plant_added');
+      }
 
       this.checkBadges();
       overlay.remove();
