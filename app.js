@@ -30,43 +30,50 @@ class PotagerApp {
 
   // One-time migration: merge duplicate batch plants created by old import code
   async migrateDeduplicateBatch() {
-    if (localStorage.getItem('migration-dedup-batch-v1')) return;
+    if (localStorage.getItem('migration-dedup-batch-v2')) return;
+    localStorage.setItem('migration-dedup-batch-v2', '1');
 
-    const BATCH_QTY = {
-      'basilic|Grand vert': 4,
-      'capucine|Empress of India': 4,
-      'capucine|Couleurs mélangées': 4,
-      'tagete|Double Pinwheel': 4,
-      'bourrache|Bleue': 4,
-      'salade|Buttercrunch': 3,
-      'tabac|Ghost Pipes': 3,
-    };
+    try {
+      const BATCH_QTY = {
+        'basilic|Grand vert': 4,
+        'capucine|Empress of India': 4,
+        'capucine|Couleurs mélangées': 4,
+        'tagete|Double Pinwheel': 4,
+        'bourrache|Bleue': 4,
+        'salade|Buttercrunch': 3,
+        'tabac|Ghost Pipes': 3,
+      };
 
-    const plants = await db.getPlants();
-    const batchPlants = plants.filter(p => p.plantedAt === '2026-04-02');
+      const plants = await db.getPlants();
+      const batchPlants = plants.filter(p => p.plantedAt === '2026-04-02');
 
-    // Group by dbId+variety
-    const groups = {};
-    batchPlants.forEach(p => {
-      const key = `${p.dbId}|${p.variety || ''}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(p);
-    });
+      // Group by dbId+variety
+      const groups = {};
+      batchPlants.forEach(p => {
+        const key = `${p.dbId}|${p.variety || ''}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
+      });
 
-    let changed = false;
-    for (const [key, group] of Object.entries(groups)) {
-      if (group.length <= 1 && group[0]?.quantity) continue; // already clean
-      changed = true;
-      // Keep first, assign correct quantity, delete duplicates
-      const keeper = { ...group[0], quantity: BATCH_QTY[key] || group.length };
-      await db.updatePlant(keeper);
-      for (let i = 1; i < group.length; i++) {
-        await db.deletePlant(group[i].id);
+      for (const [key, group] of Object.entries(groups)) {
+        if (group.length <= 1) {
+          // Single entry: just ensure quantity is set
+          if (!group[0].quantity) {
+            await db.updatePlant({ ...group[0], quantity: BATCH_QTY[key] || 1 });
+          }
+          continue;
+        }
+        // Multiple entries: keep first with correct quantity, delete the rest
+        await db.updatePlant({ ...group[0], quantity: BATCH_QTY[key] || group.length });
+        for (let i = 1; i < group.length; i++) {
+          await db.deletePlant(group[i].id);
+        }
       }
+    } catch (e) {
+      console.warn('Migration dedup failed:', e);
     }
 
-    localStorage.setItem('migration-dedup-batch-v1', '1');
-    // Reset import flag so the banner reappears to let user re-import missing lots
+    // Always reset import flag so the banner is visible to re-import if needed
     localStorage.removeItem('semis-20260402-imported');
   }
 

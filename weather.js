@@ -54,7 +54,7 @@ const Weather = (() => {
       `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum` +
       `&timezone=Europe%2FParis&forecast_days=4`;
 
-    const res = await fetch(url);
+    const res = await window.fetch(url);
     if (!res.ok) throw new Error('Open-Meteo ' + res.status);
     const data = await res.json();
 
