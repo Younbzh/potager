@@ -1,4 +1,4 @@
-const CACHE_NAME = 'potager-v7';
+const CACHE_NAME = 'potager-v8';
 const STATIC_ASSETS = [
   './manifest.json',
   './icon.svg',
@@ -10,7 +10,7 @@ const JS_FILES = [
   './app.js',
   './db.js',
   './sync.js',
-  './firebase-config.js',
+  './supabase-config.js',
   './moon.js',
   './plants-data.js',
   './weather.js',
