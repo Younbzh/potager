@@ -795,9 +795,9 @@ class PotagerApp {
   }
 
   setupNav() {
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.addEventListener('click', () => this.navigate(btn.dataset.view));
-    });
+    document.getElementById('nav-explorer')?.addEventListener('click', () => this.showExplorerSheet());
+    document.getElementById('nav-quick-add')?.addEventListener('click', () => this.showQuickAddModal());
+    document.getElementById('nav-profil')?.addEventListener('click', () => this.navigate('family'));
   }
 
   navigate(view, params = {}) {
@@ -805,11 +805,12 @@ class PotagerApp {
     this.state.params = params;
     this.activeTab = 'fiche';
 
-    document.querySelectorAll('.nav-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.view === view);
-    });
+    const explorerViews = ['plants', 'tasks', 'moon', 'garden', 'stats', 'journal', 'calendar', 'rotation'];
+    document.getElementById('nav-explorer')?.classList.toggle('active', explorerViews.includes(view));
+    document.getElementById('nav-profil')?.classList.toggle('active', view === 'family');
+    document.getElementById('nav-quick-add')?.classList.remove('active');
 
-    const navViews = ['home', 'plants', 'tasks', 'moon', 'garden', 'family'];
+    const navViews = ['home', 'plants', 'tasks', 'moon', 'garden', 'family', 'stats', 'journal', 'calendar', 'rotation', 'plant-detail'];
     const showNav = navViews.includes(view);
     document.getElementById('app-nav').style.display = showNav ? 'flex' : 'none';
 
@@ -856,260 +857,328 @@ class PotagerApp {
   async viewHome() {
     const profile = ProfileManager.getActive();
     if (profile?.role === 'kid') return this.viewKidHome(profile);
+
     const now = new Date();
     const phase = MoonCalc.getPhase(now);
     const phaseName = MoonCalc.getPhaseName(phase);
     const phaseEmoji = MoonCalc.getPhaseEmoji(phase);
-    const illumination = Math.round(MoonCalc.getIllumination(phase) * 100);
     const bioType = MoonCalc.getBiodynamicType(now);
     const bioLabel = MoonCalc.getBiodynamicLabel(bioType);
-    const phaseAdvice = MoonCalc.getPhaseAdvice(phase);
-    const stats = await db.getStats();
-    const recent = await db.getRecentPlants(4);
-    const succReminders = await this.getSuccessionReminders();
 
-    // Weather (async, injected after render)
-    const weatherHTML = `<div class="weather-widget" id="weather-widget">
-      <div class="weather-loading">⛅ Chargement météo…</div></div>`;
-
-    const showNotifBanner = ('Notification' in window) && Notification.permission === 'default';
+    // Story card : top task
+    const weatherData = await Weather.fetch().catch(() => null);
+    const tasks = await TaskEngine.generateTasks(weatherData);
+    const pending = tasks.filter(t => !t.checked).sort((a, b) => {
+      const scoreA = (a.urgency || 0) * 0.5 + (a.weatherScore || 0) * 0.3 + (a.moonScore || 0) * 0.2;
+      const scoreB = (b.urgency || 0) * 0.5 + (b.weatherScore || 0) * 0.3 + (b.moonScore || 0) * 0.2;
+      return scoreB - scoreA;
+    });
+    this._storyTasks = pending;
+    this._storyTaskIdx = 0;
 
     const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const weatherCtx = weatherData ? `${weatherData.current.emoji} ${weatherData.current.temp}°C · ` : '';
+    const ctxLine = `${weatherCtx}${phaseEmoji} ${phaseName} · ${bioLabel.emoji} ${bioLabel.label}`;
 
-    const plantCount = stats.plants;
+    const topTask = pending[0];
+    const storyHTML = topTask
+      ? this.storyCardHTML(topTask, bioType, ctxLine)
+      : `<div class="story-card story-empty">
+           <div class="story-plant">${bioLabel.emoji}</div>
+           <div class="story-action">Aucune tâche urgente</div>
+           <div class="story-ctx">${bioLabel.advice}</div>
+         </div>`;
+
+    // Jardin section
+    const recent = await db.getRecentPlants(8);
+    const showNotifBanner = ('Notification' in window) && Notification.permission === 'default';
+    const stats = await db.getStats();
+
+    const plantsHTML = recent.length === 0
+      ? `<div class="home-empty-plants">
+           <span>🌱</span>
+           <p>Ajoutez votre première plante !</p>
+           <button class="btn btn-primary btn-sm" id="home-add-plant">+ Ajouter</button>
+         </div>`
+      : `<div class="home-plants-scroll">
+           ${recent.map(p => this.plantCardHTML(p)).join('')}
+         </div>`;
+
+    // Famille section
+    const allProfiles = ProfileManager.getAll();
+    const sorted = [...allProfiles].sort((a, b) => (b.xp || 0) - (a.xp || 0));
+    const medals = ['🥇', '🥈', '🥉'];
+    const familyHTML = sorted.slice(0, 3).map((p, i) => {
+      const pp = ProfileManager.getLevelProgress(p.xp || 0);
+      return `<div class="home-leader-item">
+        <span class="home-leader-medal">${medals[i] || (i + 1)}</span>
+        <span style="font-size:20px">${p.emoji}</span>
+        <div style="flex:1">
+          <div class="home-leader-name">${p.name}</div>
+          <div class="home-leader-level">${pp.level.emoji} ${pp.level.label}</div>
+        </div>
+        <span class="home-leader-xp">${p.xp || 0} XP</span>
+      </div>`;
+    }).join('');
 
     return `
-      <p class="home-greeting">Bonjour 👋</p>
-      <p class="home-date">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</p>
+      <div class="home-scroll">
 
-      ${plantCount === 0 ? `
-        <div class="card mb-12" style="border-color:#a5d6a7;background:#f1f8e9">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:20px">🌱</span>
-            <strong style="color:#2e7d32">Semis du 2 avril prêts à importer</strong>
+        ${showNotifBanner ? `<div class="notif-banner">
+          🔔 Recevez des rappels pour la lune et vos semis
+          <button id="btn-enable-notif">Activer</button>
+        </div>` : ''}
+
+        <!-- ── AUJOURD'HUI ── -->
+        <div class="home-section-today">
+          <div class="home-today-header">
+            <div class="home-today-date">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</div>
+            <div class="home-today-ctx">${ctxLine}</div>
           </div>
-          <p style="font-size:13px;color:#388e3c;margin-bottom:10px;line-height:1.5">
-            Vos 7 lots de godets ne sont pas encore dans l'app. Cliquez pour les ajouter.
-          </p>
-          <button class="btn btn-primary btn-sm" id="btn-force-import" style="background:#388e3c">
-            Importer mes semis →
-          </button>
+          ${storyHTML}
+          ${stats.plants === 0 ? `
+            <div class="home-import-banner">
+              <span>🌱</span>
+              <span>Semis à importer</span>
+              <button class="btn btn-primary btn-sm" id="btn-force-import">Importer →</button>
+            </div>` : ''}
         </div>
-      ` : ''}
 
-      ${showNotifBanner ? `<div class="notif-banner">
-        🔔 Recevez des rappels pour la lune et vos semis
-        <button id="btn-enable-notif">Activer</button>
-      </div>` : ''}
-
-      ${weatherHTML}
-
-      <div class="moon-widget card" style="cursor:pointer" id="home-moon-btn">
-        <div class="moon-widget-emoji">${phaseEmoji}</div>
-        <div class="moon-widget-info">
-          <div class="moon-widget-phase">${phaseName}</div>
-          <div class="moon-widget-ill">${illumination}% illuminée</div>
-          <span class="badge badge-${bioType}">${bioLabel.emoji} ${bioLabel.label}</span>
+        <!-- ── MON JARDIN ── -->
+        <div class="home-section">
+          <div class="section-header">
+            <span class="section-title">🌿 Mon jardin</span>
+            <button class="section-link" id="home-see-all">Voir tout →</button>
+          </div>
+          ${plantsHTML}
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-outline btn-sm" id="home-garden-btn">🗺 Plan du jardin</button>
+            <button class="btn btn-outline btn-sm" id="btn-go-stats">📊 Stats</button>
+          </div>
         </div>
+
+        <!-- ── FAMILLE ── -->
+        ${sorted.length > 0 ? `
+        <div class="home-section">
+          <div class="section-header">
+            <span class="section-title">👨‍👩‍👧 Famille</span>
+            <button class="section-link" id="home-family-btn">Voir →</button>
+          </div>
+          <div class="home-leaderboard">${familyHTML}</div>
+        </div>
+        ` : ''}
+
       </div>
-
-      <div class="rec-card card">
-        <div class="bio-stripe ${bioType}"></div>
-        <div class="rec-header">
-          <span style="font-size:18px">${bioLabel.emoji}</span>
-          <span class="rec-title">${bioLabel.label}</span>
-        </div>
-        <p class="rec-advice">${bioLabel.advice}</p>
-        <p class="rec-phase">${phaseAdvice}</p>
-      </div>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-number">${stats.plants}</span>
-          <span class="stat-label">Variétés</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number">${stats.notes}</span>
-          <span class="stat-label">Notes</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number">${stats.harvests}</span>
-          <span class="stat-label">Récoltes</span>
-        </div>
-      </div>
-
-      ${succReminders.length > 0 ? `
-        <div class="section-header">
-          <span class="section-title">🔄 Semis à planifier</span>
-        </div>
-        <div class="reminder-list" id="reminders-list">
-          ${succReminders.map(r => {
-            const badgeCls = r.daysUntil < 0 ? 'overdue' : r.daysUntil <= 3 ? 'soon' : 'ok';
-            const badgeTxt = r.daysUntil < 0 ? `En retard de ${Math.abs(r.daysUntil)}j`
-              : r.daysUntil === 0 ? 'Aujourd\'hui !'
-              : r.daysUntil <= 3 ? 'Dans ' + r.daysUntil + 'j'
-              : 'Dans ' + r.daysUntil + 'j';
-            return `
-              <div class="reminder-item" data-plant-id="${r.plant.id}">
-                <span class="reminder-emoji">${r.dbPlant.emoji}</span>
-                <div class="reminder-info">
-                  <div class="reminder-name">${r.dbPlant.name}${r.plant.variety ? ' · ' + r.plant.variety : ''}</div>
-                  <div class="reminder-detail">Prochain lot : ${r.nextDateStr}</div>
-                </div>
-                <span class="reminder-badge ${badgeCls}">${badgeTxt}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      ` : ''}
-
-      <div class="section-header">
-        <span class="section-title">Mes plantes récentes</span>
-        <button class="section-link" id="home-see-all">Voir tout →</button>
-      </div>
-
-      ${recent.length === 0
-        ? `<div class="empty-state">
-            <span class="empty-icon">🌱</span>
-            <h3>Aucune plante encore</h3>
-            <p>Commencez par ajouter vos premières variétés !</p>
-            <button class="btn btn-primary mt-12" id="home-add-plant">+ Ajouter une plante</button>
-          </div>`
-        : `<div class="recent-plants-grid">
-            ${recent.map(p => this.plantCardHTML(p)).join('')}
-          </div>`
-      }
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px">
-        <button class="btn btn-outline" id="btn-go-stats" style="justify-content:center;gap:6px">
-          📊 Statistiques
-        </button>
-        <button class="btn btn-outline" id="btn-go-journal" style="justify-content:center;gap:6px">
-          📖 Journal 2026
-        </button>
-      </div>
-
-      <button class="fab" id="fab-quick-note" title="Note rapide">✏️</button>
     `;
   }
 
-  // ===== KID HOME VIEW =====
+  storyCardHTML(task, bioType, ctxLine) {
+    const def = TaskEngine.TASK_DEF[task.type];
+    const urgLabel = task.daysUntil < 0 ? `⚠️ En retard de ${Math.abs(task.daysUntil)}j`
+      : task.daysUntil === 0 ? "Aujourd'hui !"
+      : task.daysUntil === 1 ? 'Demain'
+      : `Dans ${task.daysUntil} jours`;
+    return `
+      <div class="story-card ${bioType}" id="story-task-card" data-task-id="${task.id}" data-plant-id="${task.plantId}">
+        <div class="story-urgency">${urgLabel}</div>
+        <div class="story-plant">${task.plantEmoji}</div>
+        <div class="story-action">${task.plantName}${task.variety ? ' · ' + task.variety : ''}</div>
+        <div class="story-sub">${def.emoji} ${def.label}${task.location ? ' · 📍 ' + task.location : ''}</div>
+        <div class="story-ctx">${ctxLine}</div>
+        ${task.weatherNote || task.moonNote ? `
+          <div class="story-hints">
+            ${task.weatherNote ? `<span>${task.weatherNote}</span>` : ''}
+            ${task.moonNote ? `<span>${task.moonNote}</span>` : ''}
+          </div>` : ''}
+        <div class="story-btns">
+          <button class="story-done-btn" id="btn-story-done" data-task-id="${task.id}">Fait ✓</button>
+          <button class="story-skip-btn" id="btn-story-skip">Suivant →</button>
+        </div>
+      </div>
+    `;
+  }
+
+  _refreshStoryCard() {
+    const tasks = this._storyTasks || [];
+    const idx = this._storyTaskIdx || 0;
+    const container = document.getElementById('story-task-card')?.closest('.home-section-today');
+    if (!container) return;
+    const wrap = document.getElementById('story-task-card')?.parentElement;
+    if (!wrap) return;
+    const now = new Date();
+    const bioType = MoonCalc.getBiodynamicType(now);
+    const bioLabel = MoonCalc.getBiodynamicLabel(bioType);
+    const phase = MoonCalc.getPhase(now);
+    const ctxLine = `${MoonCalc.getPhaseEmoji(phase)} ${MoonCalc.getPhaseName(phase)} · ${bioLabel.emoji} ${bioLabel.label}`;
+    const nextTask = tasks[idx];
+    const newHTML = nextTask
+      ? this.storyCardHTML(nextTask, bioType, ctxLine)
+      : `<div class="story-card story-empty">
+           <div class="story-plant">${bioLabel.emoji}</div>
+           <div class="story-action">C'est tout pour aujourd'hui !</div>
+           <div class="story-ctx">${bioLabel.advice}</div>
+         </div>`;
+    const old = document.getElementById('story-task-card');
+    if (old) {
+      old.outerHTML = newHTML;
+    } else {
+      wrap.innerHTML = newHTML;
+    }
+    // Re-attach listeners for new card
+    const on = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+    on('btn-story-done', 'click', async () => {
+      const card = document.getElementById('story-task-card');
+      const taskId = card?.dataset.taskId;
+      if (taskId) {
+        TaskEngine.toggleChecked(taskId);
+        const profile = ProfileManager.getActive();
+        if (profile) {
+          const earned = ProfileManager.addXp(profile.id, 'task_complete');
+          this.showXpToast(earned, 'task_complete');
+        }
+      }
+      this._storyTaskIdx = (this._storyTaskIdx || 0) + 1;
+      this._refreshStoryCard();
+    });
+    on('btn-story-skip', 'click', () => {
+      this._storyTaskIdx = (this._storyTaskIdx || 0) + 1;
+      this._refreshStoryCard();
+    });
+    on('story-task-card', 'click', e => {
+      if (e.target.closest('.story-done-btn') || e.target.closest('.story-skip-btn')) return;
+      const plantId = parseInt(document.getElementById('story-task-card')?.dataset.plantId);
+      if (plantId) this.navigate('plant-detail', { id: plantId });
+    });
+  }
+
+  showExplorerSheet() {
+    const existing = document.getElementById('explorer-sheet');
+    if (existing) { existing.remove(); return; }
+    const sheet = document.createElement('div');
+    sheet.id = 'explorer-sheet';
+    sheet.className = 'explorer-sheet';
+    sheet.innerHTML = `
+      <div class="explorer-sheet-backdrop"></div>
+      <div class="explorer-sheet-panel">
+        <div class="explorer-sheet-title">Explorer</div>
+        <div class="explorer-grid">
+          <button class="explorer-item" data-view="plants">🌱<span>Mes plantes</span></button>
+          <button class="explorer-item" data-view="tasks">📋<span>Tâches</span></button>
+          <button class="explorer-item" data-view="moon">🌙<span>Lune</span></button>
+          <button class="explorer-item" data-view="garden">🗺<span>Jardin</span></button>
+          <button class="explorer-item" data-view="stats">📊<span>Stats</span></button>
+          <button class="explorer-item" data-view="journal">📖<span>Journal</span></button>
+        </div>
+      </div>
+    `;
+    document.getElementById('app').appendChild(sheet);
+    sheet.querySelector('.explorer-sheet-backdrop').addEventListener('click', () => sheet.remove());
+    sheet.querySelectorAll('.explorer-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        sheet.remove();
+        this.navigate(btn.dataset.view);
+      });
+    });
+    requestAnimationFrame(() => sheet.querySelector('.explorer-sheet-panel').classList.add('open'));
+  }
+
+  // ===== KID HOME VIEW — Animal Crossing scene =====
   async viewKidHome(profile) {
     const prog = ProfileManager.getLevelProgress(profile.xp || 0);
     const allProfiles = ProfileManager.getAll();
     const sorted = [...allProfiles].sort((a, b) => (b.xp || 0) - (a.xp || 0));
 
-    // Adopted plants
     const allPlants = await db.getPlants();
     const owned = allPlants.filter(p => p.ownerId === profile.id && p.status !== 'removed');
 
-    // Tasks as quests
     const weatherData = await Weather.fetch().catch(() => null);
     const tasks = await TaskEngine.generateTasks(weatherData);
     const quests = tasks.filter(t => !t.checked).slice(0, 3);
 
-    const questTypeLabels = {
-      acclimatation: { emoji: '🌤', text: 'Sortir dehors pour s\'habituer' },
-      repiquage:     { emoji: '🌱', text: 'Planter en pleine terre' },
-      recolte:       { emoji: '🧺', text: 'Cueillir et récolter' },
-    };
+    // Growth stage → scene emoji
+    const stageEmoji = s => ({ semis: '🌱', croissance: '🌿', floraison: '🌸', recolte: '🧺', termine: '🍂' }[s] || '🌱');
+
+    // Scene plants (up to 6)
+    const scenePositions = ['12%', '26%', '41%', '56%', '71%', '86%'];
+    const scenePlants = owned.slice(0, 6).map((p, i) => {
+      const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+      const name = p.customName || dbP?.name || 'Plante';
+      const growth = p.growthStatus || 'semis';
+      const size = { semis: '28px', croissance: '36px', floraison: '44px', recolte: '44px', termine: '32px' }[growth] || '32px';
+      return `
+        <div class="scene-plant" style="left:${scenePositions[i]}" data-plant-id="${p.id}">
+          <span style="font-size:${size};display:block;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15))">${stageEmoji(growth)}</span>
+          <span class="scene-plant-name">${name}</span>
+        </div>`;
+    }).join('');
+
+    // Floating quest bubbles
+    const bubblePos = ['6%', '38%', '66%'];
+    const questBubbles = quests.map((t, i) => {
+      const def = TaskEngine.TASK_DEF[t.type];
+      const urgClass = t.daysUntil <= 0 ? 'overdue' : t.daysUntil <= 3 ? 'soon' : 'ok';
+      return `
+        <div class="scene-bubble ${urgClass} bubble-anim-${i % 3}" style="left:${bubblePos[i]}"
+             data-task-id="${t.id}" data-plant-id="${t.plantId}">
+          <div class="scene-bubble-emoji">${def.emoji}</div>
+          <div class="scene-bubble-name">${t.plantName}</div>
+          <label class="scene-bubble-check">
+            <input type="checkbox" class="task-check" data-task-id="${t.id}" ${t.checked ? 'checked' : ''}>
+            <span>${t.checked ? '✅' : '○'}</span>
+          </label>
+        </div>`;
+    }).join('');
 
     const leaderHTML = sorted.map((p, i) => {
       const pProg = ProfileManager.getLevelProgress(p.xp || 0);
       const isMe = p.id === profile.id;
-      const medals = ['🥇','🥈','🥉'];
+      const medals = ['🥇', '🥈', '🥉'];
       return `
         <div class="kid-leader-item ${isMe ? 'me' : ''}">
-          <span class="kid-leader-rank">${medals[i] || `${i+1}`}</span>
+          <span class="kid-leader-rank">${medals[i] || (i + 1)}</span>
           <span style="font-size:22px">${p.emoji}</span>
           <div class="kid-leader-info">
             <div class="kid-leader-name">${p.name}${isMe ? ' (moi)' : ''}</div>
             <div class="kid-leader-level">${pProg.level.emoji} ${pProg.level.label}</div>
           </div>
           <span class="kid-leader-xp">${p.xp || 0} XP</span>
-        </div>
-      `;
+        </div>`;
     }).join('');
-
-    const ownedHTML = owned.length === 0
-      ? `<div class="kid-adopt-empty">
-           <span style="font-size:32px">🌱</span>
-           <p>Tu n'as pas encore adopté de plante !<br>Va dans une fiche et clique <strong>Adopter</strong>.</p>
-         </div>`
-      : owned.map(p => {
-          const dbP = PLANTS_DB.find(d => d.id === p.dbId);
-          const emoji = p.customEmoji || dbP?.emoji || '🌱';
-          const name = p.customName || dbP?.name || 'Plante';
-          return `<div class="kid-plant-chip" data-plant-id="${p.id}">
-            <span style="font-size:22px">${emoji}</span>
-            <span>${name}${p.variety ? ' · ' + p.variety : ''}</span>
-          </div>`;
-        }).join('');
-
-    const questsHTML = quests.length === 0
-      ? `<div class="kid-quest-empty">🎉 Aucune mission urgente ! Profites-en pour observer le jardin.</div>`
-      : quests.map(t => {
-          const def = TaskEngine.TASK_DEF[t.type];
-          const qt = questTypeLabels[t.type] || { emoji: def.emoji, text: def.label };
-          const urgClass = t.daysUntil <= 0 ? 'overdue' : t.daysUntil <= 3 ? 'soon' : 'ok';
-          return `
-            <div class="kid-quest-card ${urgClass}" data-task-id="${t.id}" data-plant-id="${t.plantId}">
-              <div class="kid-quest-top">
-                <span class="kid-quest-emoji">${qt.emoji}</span>
-                <div class="kid-quest-info">
-                  <div class="kid-quest-plant">${t.plantEmoji} ${t.plantName}${t.variety ? ' · ' + t.variety : ''}</div>
-                  <div class="kid-quest-action">${qt.text}</div>
-                </div>
-                <span class="kid-quest-xp">+20 XP</span>
-              </div>
-              <div class="kid-quest-date">${
-                t.daysUntil < 0 ? `En retard de ${Math.abs(t.daysUntil)} jours !`
-                : t.daysUntil === 0 ? `Aujourd'hui !`
-                : t.daysUntil === 1 ? 'Demain'
-                : `Dans ${t.daysUntil} jours`
-              }</div>
-              <label class="kid-quest-check-wrap">
-                <input type="checkbox" class="task-check" data-task-id="${t.id}" ${t.checked ? 'checked' : ''}>
-                <span class="kid-quest-check-label">${t.checked ? '✅ Fait !' : 'Marquer comme fait'}</span>
-              </label>
-            </div>
-          `;
-        }).join('');
 
     return `
       <div class="kid-home">
-        <div class="kid-hero">
-          <span class="kid-hero-emoji">${profile.emoji}</span>
-          <div class="kid-hero-info">
-            <div class="kid-hero-name">Salut ${profile.name} ! 👋</div>
-            <div class="kid-hero-level">${prog.level.emoji} ${prog.level.label}</div>
+
+        <!-- ── SCÈNE JARDIN ── -->
+        <div class="kid-scene">
+          <div class="scene-sky">
+            <div class="scene-greeting">
+              <span style="font-size:28px">${profile.emoji}</span>
+              <div>
+                <div style="font-weight:800;font-size:16px">Salut ${profile.name} !</div>
+                <div style="font-size:12px;opacity:0.85">${prog.level.emoji} ${prog.level.label} · ${profile.xp || 0} XP</div>
+              </div>
+            </div>
+            ${quests.length > 0 ? questBubbles : `<div class="scene-no-quest">🎉 Aucune mission !</div>`}
           </div>
-          <div class="kid-hero-xp">${profile.xp || 0} XP</div>
+          <div class="scene-ground">
+            ${owned.length === 0
+              ? `<div class="scene-empty">🌱 Adopte tes premières plantes !</div>`
+              : scenePlants}
+          </div>
+          <div class="scene-xp-wrap">
+            <div class="scene-xp-bar">
+              <div class="scene-xp-fill" style="width:${prog.pct}%"></div>
+            </div>
+            <span class="scene-xp-label">
+              ${prog.xpToNext > 0 ? `${prog.xpToNext} XP → ${prog.next?.label || ''}` : '🏆 Niveau max !'}
+            </span>
+          </div>
         </div>
 
-        <div class="kid-xp-section">
-          <div class="kid-xp-label">
-            <span>Progression</span>
-            ${prog.xpToNext > 0 ? `<span>${prog.xpToNext} XP pour <strong>${prog.next?.label}</strong></span>` : '<span>Niveau max ! 🏆</span>'}
-          </div>
-          <div class="kid-xp-bar"><div class="kid-xp-fill" style="width:${prog.pct}%"></div></div>
-        </div>
-
-        <div class="kid-section-title">🎯 Missions du jour</div>
-        <div class="kid-quests">${questsHTML}</div>
-
-        <div class="kid-section-title">🌱 Mes plantes adoptées</div>
-        <div class="kid-owned">${ownedHTML}</div>
-
+        <!-- ── CLASSEMENT ── -->
         <div class="kid-section-title">🏆 Classement famille</div>
         <div class="kid-leaderboard">${leaderHTML}</div>
 
-        <div class="kid-explore-row">
-          <button class="kid-explore-btn" onclick="app.navigate('plants')">🌿<br>Plantes</button>
-          <button class="kid-explore-btn" onclick="app.navigate('tasks')">📋<br>Tâches</button>
-          <button class="kid-explore-btn" onclick="app.navigate('moon')">🌙<br>Lune</button>
-          <button class="kid-explore-btn" onclick="app.navigate('garden')">🗺<br>Jardin</button>
-        </div>
       </div>
     `;
   }
@@ -1297,7 +1366,7 @@ class PotagerApp {
     `;
   }
 
-  // ===== PLANT DETAIL VIEW =====
+  // ===== PLANT DETAIL VIEW — feed vertical =====
   async viewPlantDetail(id) {
     const plant = await db.getPlant(id);
     if (!plant) return '<p>Plante introuvable.</p>';
@@ -1314,20 +1383,19 @@ class PotagerApp {
       db.getHarvests(id)
     ]);
 
-    // Kokopelli product URL stored with the plant
     const kokoUrlBadge = plant.kokoUrl ? `
-      <a href="${plant.kokoUrl}" target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;
-                padding:6px 14px;background:#fff8e1;border:1px solid #d4a017;
-                border-radius:20px;font-size:13px;font-weight:700;color:#7b4f00;text-decoration:none">
+      <a href="${plant.kokoUrl}" target="_blank" rel="noopener" class="koko-badge-link">
         🌻 Fiche Kokopelli ↗
       </a>` : '';
 
-    const ficheHTML = (dbPlant ? this.ficheHTML(dbPlant, plant) : `
+    const ficheContent = (dbPlant ? this.ficheHTML(dbPlant, plant) : `
       <div class="card">
         <p style="color:var(--text-mid)">${plant.description || 'Aucune description.'}</p>
       </div>
     `) + kokoUrlBadge;
+
+    // Last note (most recent = notes[0] since getNotes returns DESC)
+    const lastNote = notes[0];
 
     return `
       <div class="plant-hero">
@@ -1340,45 +1408,17 @@ class PotagerApp {
       </div>
 
       ${this.plantTimelineHTML(plant)}
-
       ${this.statusStepperHTML(plant)}
 
-      <div class="tabs-bar">
-        <button class="tab-btn ${this.activeTab === 'fiche' ? 'active' : ''}" data-tab="fiche">Fiche</button>
-        <button class="tab-btn ${this.activeTab === 'notes' ? 'active' : ''}" data-tab="notes">Notes (${notes.length})</button>
-        <button class="tab-btn ${this.activeTab === 'recoltes' ? 'active' : ''}" data-tab="recoltes">Récoltes (${harvests.length})</button>
+      <!-- Actions rapides -->
+      <div class="plant-quick-actions">
+        <button class="btn btn-primary" id="fab-add-note">✏️ Note</button>
+        <button class="btn btn-outline" id="btn-add-harvest">🧺 Récolte</button>
+        <button class="btn btn-outline" id="btn-resemer">🔄 Resemer</button>
       </div>
 
-      <div class="tab-pane ${this.activeTab === 'fiche' ? 'active' : ''}" id="pane-fiche">
-        ${ficheHTML}
-        <div class="mt-12">
-          <button class="btn btn-danger btn-sm" id="btn-delete-plant">Supprimer cette plante</button>
-        </div>
-      </div>
-
-      <div class="tab-pane ${this.activeTab === 'notes' ? 'active' : ''}" id="pane-notes">
-        ${notes.length === 0
-          ? `<div class="empty-state"><span class="empty-icon">📝</span><h3>Aucune note</h3><p>Notez vos observations et résultats.</p></div>`
-          : `<div class="notes-list">${notes.map(n => this.noteHTML(n)).join('')}</div>`
-        }
-      </div>
-
-      <div class="tab-pane ${this.activeTab === 'recoltes' ? 'active' : ''}" id="pane-recoltes">
-        ${harvests.length === 0
-          ? `<div class="empty-state"><span class="empty-icon">🧺</span><h3>Aucune récolte</h3><p>Enregistrez vos premières récoltes !</p></div>`
-          : `<div class="harvest-list">${harvests.map(h => this.harvestHTML(h)).join('')}</div>`
-        }
-        <button class="btn btn-outline btn-full mt-12" id="btn-add-harvest">🧺 Enregistrer une récolte</button>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:12px;padding-bottom:4px">
-        <button class="btn btn-outline" style="flex:1;justify-content:center;font-size:13px" id="btn-resemer">
-          🔄 Resemer
-        </button>
-        <button class="fab-inline" id="fab-add-note" title="Ajouter une note">✏️ Note</button>
-      </div>
-
-      <div style="margin-top:8px">
+      <!-- Adoption -->
+      <div class="plant-adopt-row">
         ${plant.ownerId
           ? `<div class="adopt-badge">
                <span>${ProfileManager.getAll().find(p => p.id === plant.ownerId)?.emoji || '🌱'}</span>
@@ -1386,6 +1426,41 @@ class PotagerApp {
              </div>`
           : `<button class="btn btn-adopt" id="btn-adopt-plant">🌱 Adopter cette plante</button>`
         }
+      </div>
+
+      <!-- Feed : dernière note -->
+      ${lastNote ? `
+      <div class="plant-feed-section">
+        <div class="plant-feed-title">Dernière observation</div>
+        ${this.noteHTML(lastNote)}
+      </div>` : ''}
+
+      <!-- Feed : toutes les notes -->
+      <div class="plant-feed-section">
+        <div class="plant-feed-title">Notes (${notes.length})</div>
+        ${notes.length === 0
+          ? `<div class="empty-state" style="padding:24px 0"><span class="empty-icon" style="font-size:32px">📝</span><p>Aucune note</p></div>`
+          : `<div class="notes-list">${notes.map(n => this.noteHTML(n)).join('')}</div>`}
+      </div>
+
+      <!-- Feed : récoltes -->
+      <div class="plant-feed-section">
+        <div class="plant-feed-title">Récoltes (${harvests.length})</div>
+        ${harvests.length === 0
+          ? `<div class="empty-state" style="padding:24px 0"><span class="empty-icon" style="font-size:32px">🧺</span><p>Aucune récolte</p></div>`
+          : `<div class="harvest-list">${harvests.map(h => this.harvestHTML(h)).join('')}</div>`}
+        <button class="btn btn-outline btn-sm" id="btn-add-harvest-2" style="margin-top:10px">+ Récolte</button>
+      </div>
+
+      <!-- Feed : fiche botanique -->
+      <div class="plant-feed-section">
+        <div class="plant-feed-title">Fiche botanique</div>
+        ${ficheContent}
+      </div>
+
+      <!-- Supprimer -->
+      <div class="mt-12" style="padding-bottom:8px">
+        <button class="btn btn-danger btn-sm" id="btn-delete-plant">Supprimer cette plante</button>
       </div>
     `;
   }
@@ -2241,36 +2316,53 @@ class PotagerApp {
     });
 
     if (view === 'home') {
-      on('home-moon-btn', 'click', () => this.navigate('moon'));
       on('home-see-all', 'click', () => this.navigate('plants'));
       on('home-add-plant', 'click', () => this.showQuickAddModal());
       on('btn-enable-notif', 'click', () => this.requestNotifications());
       on('btn-go-stats', 'click', () => this.navigate('stats'));
-      on('btn-go-journal', 'click', () => this.navigate('journal'));
-      on('fab-quick-note', 'click', () => this.showQuickNoteModal());
+      on('home-garden-btn', 'click', () => this.navigate('garden'));
+      on('home-family-btn', 'click', () => this.navigate('family'));
       on('btn-force-import', 'click', async () => {
         localStorage.removeItem('auto-import-april2-v1');
         await this.autoImportAprilBatch();
         this.navigate('plants');
       });
-      // Reminder clicks → plant detail
-      document.querySelectorAll('#reminders-list .reminder-item').forEach(item => {
-        item.addEventListener('click', () => this.navigate('plant-detail', { id: parseInt(item.dataset.plantId) }));
-      });
-      // Async weather inject (adult home only)
-      if (!document.querySelector('.kid-home')) {
-        Weather.fetch().then(data => {
-          const widget = document.getElementById('weather-widget');
-          if (widget) widget.outerHTML = Weather.render(data);
-        });
-      }
 
-      // Kid home: quest checkboxes
-      document.querySelectorAll('.kid-home .task-check').forEach(cb => {
+      // Story card: "Fait ✓"
+      on('btn-story-done', 'click', async () => {
+        const card = document.getElementById('story-task-card');
+        const taskId = card?.dataset.taskId;
+        if (taskId) {
+          TaskEngine.toggleChecked(taskId);
+          const profile = ProfileManager.getActive();
+          if (profile) {
+            const earned = ProfileManager.addXp(profile.id, 'task_complete');
+            this.showXpToast(earned, 'task_complete');
+          }
+        }
+        this._storyTaskIdx = (this._storyTaskIdx || 0) + 1;
+        this._refreshStoryCard();
+      });
+
+      // Story card: "Suivant →"
+      on('btn-story-skip', 'click', () => {
+        this._storyTaskIdx = (this._storyTaskIdx || 0) + 1;
+        this._refreshStoryCard();
+      });
+
+      // Story card click → plant detail
+      on('story-task-card', 'click', e => {
+        if (e.target.closest('.story-done-btn') || e.target.closest('.story-skip-btn')) return;
+        const plantId = parseInt(document.getElementById('story-task-card')?.dataset.plantId);
+        if (plantId) this.navigate('plant-detail', { id: plantId });
+      });
+
+      // Kid scene: quest bubble checkboxes
+      document.querySelectorAll('.scene-bubble .task-check').forEach(cb => {
         cb.addEventListener('change', () => {
           TaskEngine.toggleChecked(cb.dataset.taskId);
-          const label = cb.nextElementSibling;
-          if (label) label.textContent = cb.checked ? '✅ Fait !' : 'Marquer comme fait';
+          const span = cb.nextElementSibling;
+          if (span) span.textContent = cb.checked ? '✅' : '○';
           if (cb.checked) {
             const profile = ProfileManager.getActive();
             if (profile) {
@@ -2281,19 +2373,19 @@ class PotagerApp {
         });
       });
 
-      // Kid home: quest card click → plant detail
-      document.querySelectorAll('.kid-quest-card').forEach(card => {
-        card.addEventListener('click', e => {
-          if (e.target.type === 'checkbox' || e.target.closest('label')) return;
-          const plantId = parseInt(card.dataset.plantId);
+      // Kid scene: plant click → plant detail
+      document.querySelectorAll('.scene-plant').forEach(el => {
+        el.addEventListener('click', () => {
+          const plantId = parseInt(el.dataset.plantId);
           if (plantId) this.navigate('plant-detail', { id: plantId });
         });
       });
 
-      // Kid home: owned plant click → plant detail
-      document.querySelectorAll('.kid-plant-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          const plantId = parseInt(chip.dataset.plantId);
+      // Kid scene: bubble click → plant detail
+      document.querySelectorAll('.scene-bubble').forEach(el => {
+        el.addEventListener('click', e => {
+          if (e.target.type === 'checkbox' || e.target.closest('label')) return;
+          const plantId = parseInt(el.dataset.plantId);
           if (plantId) this.navigate('plant-detail', { id: plantId });
         });
       });
@@ -2315,15 +2407,6 @@ class PotagerApp {
     }
 
     if (view === 'plant-detail') {
-      // Tabs
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          this.activeTab = btn.dataset.tab;
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-          document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `pane-${btn.dataset.tab}`));
-        });
-      });
-
       on('fab-add-note', 'click', () => this.navigate('add-note', { plantId: params.id }));
 
       on('btn-adopt-plant', 'click', async () => {
@@ -2345,6 +2428,7 @@ class PotagerApp {
         this.showQuickAddModal({ prefill: { dbPlant, variety: plant.variety, location: plant.location } });
       });
       on('btn-add-harvest', 'click', () => this.navigate('add-harvest', { plantId: params.id }));
+      on('btn-add-harvest-2', 'click', () => this.navigate('add-harvest', { plantId: params.id }));
       on('btn-delete-plant', 'click', () => this.confirmDeletePlant(params.id));
 
       // Kokopelli variety tag clicks → update search link dynamically
