@@ -1,4 +1,4 @@
-const CACHE_NAME = 'potager-v9';
+const CACHE_NAME = 'potager-v10';
 const STATIC_ASSETS = [
   './manifest.json',
   './icon.svg',

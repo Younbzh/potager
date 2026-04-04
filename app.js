@@ -127,7 +127,7 @@ class PotagerApp {
         this.showFamilySetup();
       } else {
         // Jardin existant (enfant rejoint via lien) → "Qui es-tu ?"
-        this.showWhoAreYou(profiles);
+        await this.showWhoAreYou(profiles);
       }
       return;
     }
@@ -304,7 +304,16 @@ class PotagerApp {
   }
 
   // ===== QUI ES-TU ? (appareil qui rejoint un jardin existant) =====
-  showWhoAreYou(profiles) {
+  async showWhoAreYou(profiles) {
+    // Recharger les profils frais depuis Supabase avant d'afficher
+    try {
+      const remote = await GardenSync.getProfiles();
+      if (remote.length > 0) {
+        localStorage.setItem('potager-profiles', JSON.stringify(remote));
+        profiles = remote;
+      }
+    } catch (_) {}
+
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
@@ -1054,6 +1063,14 @@ class PotagerApp {
 
   // ===== FAMILY VIEW =====
   async viewFamily() {
+    // Toujours recharger depuis Supabase pour avoir tous les membres à jour
+    try {
+      const remote = await GardenSync.getProfiles();
+      if (remote.length > 0) {
+        localStorage.setItem('potager-profiles', JSON.stringify(remote));
+      }
+    } catch (_) { /* hors ligne — on utilise le cache */ }
+
     const profiles = ProfileManager.getAll();
     const active   = ProfileManager.getActive();
     const plants   = await db.getPlants();
