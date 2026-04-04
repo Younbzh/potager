@@ -1214,8 +1214,6 @@ class PotagerApp {
       input.focus();
     });
 
-    // Autofocus après animation
-    setTimeout(() => input.focus(), 320);
   }
 
   // ===== KID HOME VIEW — Animal Crossing scene =====
