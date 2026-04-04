@@ -2514,6 +2514,21 @@ img { max-width: 100%; }
 .fam-reward-item strong { color: var(--primary); font-size: 11px; }
 .fam-reward-item span:first-child { font-size: 18px; }
 
+.profile-role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.profile-role-badge.kid    { background: #e8f5e9; color: #2e7d32; border-color: #81c784; }
+.profile-role-badge.adult  { background: #e3f2fd; color: #1565c0; border-color: #90caf9; }
+.profile-role-badge:active { opacity: 0.7; }
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

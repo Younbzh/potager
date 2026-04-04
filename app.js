@@ -439,6 +439,7 @@ class PotagerApp {
         <div class="profile-list">
           ${profiles.map(p => {
             const prog = ProfileManager.getLevelProgress(p.xp || 0);
+            const isKid = p.role === 'kid';
             return `
               <div class="profile-item ${p.id === active?.id ? 'active' : ''}" data-id="${p.id}">
                 <span class="profile-emoji">${p.emoji}</span>
@@ -447,6 +448,9 @@ class PotagerApp {
                   <div class="profile-item-level">${prog.level.emoji} ${prog.level.label} · ${p.xp || 0} XP</div>
                   <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${prog.pct}%"></div></div>
                 </div>
+                <button class="profile-role-badge ${isKid ? 'kid' : 'adult'}" data-profile-id="${p.id}" title="Changer le rôle">
+                  ${isKid ? '🧒 Enfant' : '👨‍🌾 Adulte'}
+                </button>
                 ${p.id === active?.id ? '<span class="profile-check">✓</span>' : ''}
               </div>
             `;
@@ -458,6 +462,27 @@ class PotagerApp {
     `;
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('.profile-role-badge').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        const profiles = ProfileManager.getAll();
+        const p = profiles.find(x => x.id === btn.dataset.profileId);
+        if (!p) return;
+        p.role = p.role === 'kid' ? 'adult' : 'kid';
+        localStorage.setItem('potager-profiles', JSON.stringify(profiles));
+        if (typeof GardenSync !== 'undefined' && GardenSync.gardenId) {
+          GardenSync.saveProfile(p).catch(() => {});
+        }
+        btn.className = `profile-role-badge ${p.role === 'kid' ? 'kid' : 'adult'}`;
+        btn.textContent = p.role === 'kid' ? '🧒 Enfant' : '👨‍🌾 Adulte';
+        // Si profil actif, re-render la home
+        if (p.id === ProfileManager.getActive()?.id) {
+          overlay.remove();
+          this.navigate('home');
+        }
+      });
+    });
 
     overlay.querySelectorAll('.profile-item').forEach(item => {
       item.addEventListener('click', () => {
