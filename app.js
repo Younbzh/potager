@@ -229,17 +229,25 @@ class PotagerApp {
       doneBtn.style.display = profiles.length ? '' : 'none';
     };
 
+    let lastCreatedId = null;
+
     overlay.querySelector('#setup-add-member').addEventListener('click', () => {
       const name = overlay.querySelector('#setup-name').value.trim();
       const role = overlay.querySelector('#setup-role').value;
       if (!name) return;
       const id = ProfileManager.create(name, pickedEmoji, role);
+      lastCreatedId = id;
       if (ProfileManager.getAll().length === 1) ProfileManager.setActive(id);
       overlay.querySelector('#setup-name').value = '';
       refreshList();
     });
 
     overlay.querySelector('#setup-done').addEventListener('click', () => {
+      // Si aucun profil actif défini sur cet appareil, activer le dernier créé
+      const activeId = localStorage.getItem('potager-active-profile');
+      const allProfiles = ProfileManager.getAll();
+      const activeExists = allProfiles.some(p => p.id === activeId);
+      if (!activeExists && lastCreatedId) ProfileManager.setActive(lastCreatedId);
       GardenSync.markDeviceSetup();
       overlay.remove();
       this.updateHeaderProfile();
