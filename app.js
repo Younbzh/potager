@@ -1084,35 +1084,138 @@ class PotagerApp {
     });
   }
 
-  showExplorerSheet() {
+  async showExplorerSheet() {
     const existing = document.getElementById('explorer-sheet');
     if (existing) { existing.remove(); return; }
+
+    // Données contextuelles lune
+    const now = new Date();
+    const phase = MoonCalc.getPhase(now);
+    const phaseEmoji = MoonCalc.getPhaseEmoji(phase);
+    const phaseName = MoonCalc.getPhaseName(phase);
+    const bioType = MoonCalc.getBiodynamicType(now);
+    const bioLabel = MoonCalc.getBiodynamicLabel(bioType);
+    const phaseAdvice = MoonCalc.getPhaseAdvice(phase);
+
+    // Toutes les plantes pour la recherche
+    const allPlants = await db.getPlants();
+
     const sheet = document.createElement('div');
     sheet.id = 'explorer-sheet';
     sheet.className = 'explorer-sheet';
     sheet.innerHTML = `
       <div class="explorer-sheet-backdrop"></div>
       <div class="explorer-sheet-panel">
-        <div class="explorer-sheet-title">Explorer</div>
-        <div class="explorer-grid">
-          <button class="explorer-item" data-view="plants">🌱<span>Mes plantes</span></button>
-          <button class="explorer-item" data-view="tasks">📋<span>Tâches</span></button>
-          <button class="explorer-item" data-view="moon">🌙<span>Lune</span></button>
-          <button class="explorer-item" data-view="garden">🗺<span>Jardin</span></button>
-          <button class="explorer-item" data-view="stats">📊<span>Stats</span></button>
-          <button class="explorer-item" data-view="journal">📖<span>Journal</span></button>
+
+        <!-- Barre de recherche -->
+        <div class="exp-search-wrap">
+          <span class="exp-search-icon">🔍</span>
+          <input class="exp-search-input" id="exp-search" placeholder="Rechercher une plante…" autocomplete="off" autocorrect="off">
+          <button class="exp-search-clear" id="exp-search-clear" style="display:none">✕</button>
+        </div>
+
+        <!-- Résultats de recherche (masqués par défaut) -->
+        <div class="exp-results" id="exp-results" style="display:none"></div>
+
+        <!-- Contenu par défaut -->
+        <div id="exp-default">
+
+          <!-- Carte lune contextuelle -->
+          <div class="exp-moon-card exp-moon-${bioType}">
+            <div class="exp-moon-left">
+              <div class="exp-moon-phase">${phaseEmoji} ${phaseName}</div>
+              <div class="exp-moon-bio">${bioLabel.emoji} ${bioLabel.label}</div>
+              <div class="exp-moon-advice">${phaseAdvice}</div>
+            </div>
+            <button class="exp-moon-more" data-view="moon">Détails →</button>
+          </div>
+
+          <!-- Navigation secondaire -->
+          <div class="exp-nav-row">
+            <button class="exp-nav-btn" data-view="tasks">📋<span>Tâches</span></button>
+            <button class="exp-nav-btn" data-view="garden">🗺<span>Jardin</span></button>
+            <button class="exp-nav-btn" data-view="stats">📊<span>Stats</span></button>
+            <button class="exp-nav-btn" data-view="journal">📖<span>Journal</span></button>
+          </div>
+
         </div>
       </div>
     `;
+
     document.getElementById('app').appendChild(sheet);
-    sheet.querySelector('.explorer-sheet-backdrop').addEventListener('click', () => sheet.remove());
-    sheet.querySelectorAll('.explorer-item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        sheet.remove();
-        this.navigate(btn.dataset.view);
-      });
-    });
     requestAnimationFrame(() => sheet.querySelector('.explorer-sheet-panel').classList.add('open'));
+
+    // Fermer sur backdrop
+    sheet.querySelector('.explorer-sheet-backdrop').addEventListener('click', () => sheet.remove());
+
+    // Navigation secondaire
+    sheet.querySelectorAll('[data-view]').forEach(btn => {
+      btn.addEventListener('click', () => { sheet.remove(); this.navigate(btn.dataset.view); });
+    });
+
+    // Recherche live
+    const input = sheet.querySelector('#exp-search');
+    const results = sheet.querySelector('#exp-results');
+    const defaultContent = sheet.querySelector('#exp-default');
+    const clearBtn = sheet.querySelector('#exp-search-clear');
+
+    const renderResults = (query) => {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        results.style.display = 'none';
+        defaultContent.style.display = '';
+        clearBtn.style.display = 'none';
+        return;
+      }
+      clearBtn.style.display = '';
+      defaultContent.style.display = 'none';
+      results.style.display = '';
+
+      const matches = allPlants.filter(p => {
+        const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+        const name = (p.customName || dbP?.name || '').toLowerCase();
+        const variety = (p.variety || '').toLowerCase();
+        return name.includes(q) || variety.includes(q);
+      }).slice(0, 8);
+
+      if (matches.length === 0) {
+        results.innerHTML = `<div class="exp-no-result">Aucune plante trouvée pour "<strong>${query}</strong>"</div>`;
+        return;
+      }
+
+      results.innerHTML = matches.map(p => {
+        const dbP = PLANTS_DB.find(d => d.id === p.dbId);
+        const emoji = p.customEmoji || dbP?.emoji || '🌱';
+        const name = p.customName || dbP?.name || 'Plante';
+        const status = { semis: '🌱 Semis', croissance: '🌿 Croissance', floraison: '🌸 Floraison', recolte: '🧺 Récolte', termine: '🍂 Terminé' }[p.growthStatus] || '🌱 Semis';
+        return `
+          <div class="exp-result-item" data-plant-id="${p.id}">
+            <span class="exp-result-emoji">${emoji}</span>
+            <div class="exp-result-info">
+              <div class="exp-result-name">${name}${p.variety ? ' <span class="exp-result-variety">· ' + p.variety + '</span>' : ''}</div>
+              <div class="exp-result-status">${status}${p.location ? ' · 📍 ' + p.location : ''}</div>
+            </div>
+            <span class="exp-result-arrow">→</span>
+          </div>`;
+      }).join('');
+
+      results.querySelectorAll('.exp-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          sheet.remove();
+          this.navigate('plant-detail', { id: parseInt(item.dataset.plantId) });
+        });
+      });
+    };
+
+    input.addEventListener('input', e => renderResults(e.target.value));
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      renderResults('');
+      input.focus();
+    });
+
+    // Autofocus après animation
+    setTimeout(() => input.focus(), 320);
   }
 
   // ===== KID HOME VIEW — Animal Crossing scene =====
