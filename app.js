@@ -621,7 +621,7 @@ class PotagerApp {
 
   // Auto-import semis du 4 avril 2026
   async autoImportApril4Batch() {
-    if (localStorage.getItem('auto-import-april4-v1')) return;
+    if (localStorage.getItem('auto-import-april4-v2')) return;
 
     const DATE = '2026-04-04';
     const BATCH = [
@@ -643,7 +643,7 @@ class PotagerApp {
       { dbId: 'betterave',    variety: 'Ronde de Détroit',  qty: 1, location: 'P4',           growthStatus: 'semis', note: 'Betterave rouge classique très productive — Kokopelli · excellente en pickles · semis direct P4' },
       { dbId: 'radis',        variety: 'Sora',              qty: 1, location: 'P4',           growthStatus: 'semis', note: 'Radis rose semi-long doux — Kokopelli · intercalé betteraves P4 · récolte rapide 25 jours · ameublit le sol' },
       // ── Semis intérieur → emplacement futur ─────────────────────────────
-      { dbId: 'poireau',      variety: "Bleu d'Hiver",      qty: 1, location: 'P2',           growthStatus: 'semis', note: "Poireau tardif très rustique — Kokopelli · semis intérieur · repiquage juillet/août en P2 après récolte pois · tient jusqu'en mars" },
+      { dbId: 'poireau',      variety: "Bleu d'Hiver",      qty: 1, location: 'P2',           growthStatus: 'semis', note: "Poireau tardif très rustique — Kokopelli · semis direct en P2 · succession après récolte pois (sol enrichi azote) · tient jusqu'en mars" },
       { dbId: 'courge',       variety: 'Moschata Banat',    qty: 1, location: 'B3',           growthStatus: 'semis', note: 'Courge musquée grimpante de conservation — Kokopelli · B3 côté Ouest · peut grimper sur clôture · chair ferme et dorée · se conserve 6-8 mois' },
     ];
 
@@ -665,7 +665,7 @@ class PotagerApp {
         });
         await db.addNote(plantId, b.note, 'note');
       }
-      localStorage.setItem('auto-import-april4-v1', '1');
+      localStorage.setItem('auto-import-april4-v2', '1');
     } catch (e) {
       console.warn('Auto-import April 4 batch failed:', e);
     }

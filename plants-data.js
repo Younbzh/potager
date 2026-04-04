@@ -775,7 +775,7 @@ const PLANT_TIMELINE = {
   'bourrache':  { plantType:'indoor',    weekToHarden:2,  weekToTransplant:3,  minOutdoorTemp:8,  frostSensitive:false, harvestDaysMin:45,  harvestDaysMax:100, biodynamicIdeal:'fleur'  },
   'tabac':         { plantType:'indoor',  weekToHarden:5,  weekToTransplant:7,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:80,  harvestDaysMax:160, biodynamicIdeal:'fleur'  },
   'pois-gourmand': { plantType:'direct',  weekToHarden:null,weekToTransplant:null,minOutdoorTemp:3, frostSensitive:false, harvestDaysMin:60,  harvestDaysMax:80,  biodynamicIdeal:'fruit'  },
-  'poireau':       { plantType:'indoor',  weekToHarden:10, weekToTransplant:12, minOutdoorTemp:5,  frostSensitive:false, harvestDaysMin:150, harvestDaysMax:200, biodynamicIdeal:'feuille' },
+  'poireau':       { plantType:'direct',  weekToHarden:null,weekToTransplant:null,minOutdoorTemp:5, frostSensitive:false, harvestDaysMin:150, harvestDaysMax:200, biodynamicIdeal:'feuille' },
   'courge':        { plantType:'indoor',  weekToHarden:3,  weekToTransplant:5,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:90,  harvestDaysMax:130, biodynamicIdeal:'fruit'  },
 };
 
