@@ -113,6 +113,7 @@ class PotagerApp {
     // ── 3. Migrations données ────────────────────────────────────────────────
     await this.migrateDeduplicateBatch();
     await this.autoImportAprilBatch();
+    await this.autoImportApril4Batch();
 
     this.setupNav();
     this.registerSW();
@@ -615,6 +616,58 @@ class PotagerApp {
       localStorage.setItem('semis-20260402-imported', '1');
     } catch (e) {
       console.warn('Auto-import April batch failed:', e);
+    }
+  }
+
+  // Auto-import semis du 4 avril 2026
+  async autoImportApril4Batch() {
+    if (localStorage.getItem('auto-import-april4-v1')) return;
+
+    const DATE = '2026-04-04';
+    const BATCH = [
+      // ── Tomates intérieur → B2 ──────────────────────────────────────────
+      { dbId: 'tomate',       variety: 'Glacier',           qty: 4, location: 'B2',           growthStatus: 'semis', note: 'Tomate rouge précoce — Kokopelli · compact, idéal début saison · tuteuré' },
+      { dbId: 'tomate',       variety: 'Tigerella',         qty: 4, location: 'B2',           growthStatus: 'semis', note: 'Tomate bigarrée précoce rouge-orangé striée — Kokopelli · très productive · tuteurée' },
+      { dbId: 'tomate',       variety: 'Handy Lady',        qty: 4, location: 'B2',           growthStatus: 'semis', note: 'Tomate rouge mi-saison — port compact, chair ferme · tuteurée' },
+      // ── Tomates cerise → pots terrasse ──────────────────────────────────
+      { dbId: 'tomate',       variety: 'Red Robin',         qty: 3, location: 'pot-terrasse', growthStatus: 'semis', note: 'Tomate cerise rouge naine — variété ultra-compacte (30 cm), parfaite en pot terrasse · pas de taille ni tuteur' },
+      { dbId: 'tomate',       variety: 'Ambrosia Red',      qty: 3, location: 'pot-terrasse', growthStatus: 'semis', note: 'Tomate cerise rouge — pot terrasse · récolte abondante juillet-octobre' },
+      // ── Direct sowing P2 ─────────────────────────────────────────────────
+      { dbId: 'pois-gourmand',variety: 'Norli',             qty: 1, location: 'P2',           growthStatus: 'semis', note: 'Pois gourmand nain mangetout — Kokopelli · semis direct en ligne dense P2 · récolte avant repiquage poireaux' },
+      // ── Direct sowing P1 ─────────────────────────────────────────────────
+      { dbId: 'carotte',      variety: 'Rodelika',          qty: 1, location: 'P1',           growthStatus: 'semis', note: 'Carotte rouge type Nantes — Kokopelli · chair ferme et sucrée · semis direct P1 no-dig' },
+      { dbId: 'carotte',      variety: 'Flakkee',           qty: 1, location: 'P1',           growthStatus: 'semis', note: 'Carotte rouge longue type Flandres — Kokopelli · excellente conservation · intercalée Rodelika en P1' },
+      { dbId: 'oignon',       variety: 'Genève',            qty: 1, location: 'P1',           growthStatus: 'semis', note: 'Oignon rouge doux de Genève — Kokopelli · semis direct, intercalé carottes P1 · récolte août-sept' },
+      // ── Direct sowing P4 ─────────────────────────────────────────────────
+      { dbId: 'betterave',    variety: 'De Chioggia',       qty: 1, location: 'P4',           growthStatus: 'semis', note: 'Betterave bicolore rose et blanc spiralée — Kokopelli · chair douce, non terreuse · semis direct P4' },
+      { dbId: 'betterave',    variety: 'Ronde de Détroit',  qty: 1, location: 'P4',           growthStatus: 'semis', note: 'Betterave rouge classique très productive — Kokopelli · excellente en pickles · semis direct P4' },
+      { dbId: 'radis',        variety: 'Sora',              qty: 1, location: 'P4',           growthStatus: 'semis', note: 'Radis rose semi-long doux — Kokopelli · intercalé betteraves P4 · récolte rapide 25 jours · ameublit le sol' },
+      // ── Semis intérieur → emplacement futur ─────────────────────────────
+      { dbId: 'poireau',      variety: "Bleu d'Hiver",      qty: 1, location: 'P2',           growthStatus: 'semis', note: "Poireau tardif très rustique — Kokopelli · semis intérieur · repiquage juillet/août en P2 après récolte pois · tient jusqu'en mars" },
+      { dbId: 'courge',       variety: 'Moschata Banat',    qty: 1, location: 'B3',           growthStatus: 'semis', note: 'Courge musquée grimpante de conservation — Kokopelli · B3 côté Ouest · peut grimper sur clôture · chair ferme et dorée · se conserve 6-8 mois' },
+    ];
+
+    try {
+      const existing = await db.getPlants();
+      for (const b of BATCH) {
+        const alreadyIn = existing.some(p =>
+          p.dbId === b.dbId && p.variety === b.variety && p.plantedAt === DATE
+        );
+        if (alreadyIn) continue;
+        const plantId = await db.addPlant({
+          dbId:        b.dbId,
+          variety:     b.variety,
+          plantedAt:   DATE,
+          location:    b.location,
+          status:      'growing',
+          quantity:    b.qty,
+          growthStatus: b.growthStatus,
+        });
+        await db.addNote(plantId, b.note, 'note');
+      }
+      localStorage.setItem('auto-import-april4-v1', '1');
+    } catch (e) {
+      console.warn('Auto-import April 4 batch failed:', e);
     }
   }
 

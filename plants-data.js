@@ -651,6 +651,99 @@ const PLANTS_DB = [
       maxBatches: 4,
       note: 'Semez 3-4 lots espacés de 3 semaines d\'avril à juillet pour récolter des betteraves tendres de juillet à octobre.'
     }
+  },
+  {
+    id: 'pois-gourmand',
+    name: 'Pois gourmand',
+    emoji: '🫛',
+    category: 'legume-fruit',
+    description: 'Le pois mangetout se consomme cosse et tout, croquant et sucré. Très productif et rapide, il est idéal en début de saison car il supporte les températures fraîches. Norli est une variété naine particulièrement adaptée aux semis denses et aux petits espaces.',
+    varieties: ['Norli', 'Carouby de Maussane', 'Oregon Sugar Pod', 'Géant suisse'],
+    planting: { months: [2, 3, 4, 5], depth: 3, spacing: 8, method: 'Semis direct en ligne — ne pas repiquer (racines fragiles)' },
+    harvest: { months: [5, 6, 7], duration: '60-70 jours après semis' },
+    care: {
+      water: 'Modéré, arroser à la base, éviter le feuillage',
+      sun: 'Plein soleil à mi-ombre',
+      soil: 'Léger, bien drainé, peu fertile (fixe l\'azote)',
+      tips: [
+        'Ne pas fertiliser — le pois fixe lui-même l\'azote atmosphérique',
+        'Norli est nain (60 cm) — un tuteurage léger suffit',
+        'Récolter régulièrement pour stimuler la production',
+        'Semer tôt — supporte jusqu\'à -5°C une fois levé',
+        'Excellent précédent cultural : enrichit le sol en azote pour les tomates',
+        'Après récolte, laisser les racines en place et enfouir le feuillage'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Carotte', 'Radis', 'Salade', 'Épinard', 'Ciboulette'],
+    avoid: ['Oignon', 'Ail', 'Fenouil'],
+    kokopelli: {
+      search: 'pois gourmand',
+      catalogPath: '/fr/c/semences-de-haricots',
+      varietiesKoko: ['Norli', 'Carouby de Maussane', 'Géant suisse']
+    }
+  },
+  {
+    id: 'poireau',
+    name: 'Poireau',
+    emoji: '🥬',
+    category: 'legume-feuille',
+    description: 'Légume d\'hiver par excellence, le poireau se sème au printemps pour une récolte à partir de l\'automne. Très rustique, il résiste aux fortes gelées. Le Bleu d\'Hiver est une variété tardive de conservation extraordinaire, récoltable jusqu\'en mars.',
+    varieties: ["Bleu d'Hiver", 'Monstrueux de Carentan', 'Saint Victor', "Géant d'Automne", 'Jaune Gros du Poitou'],
+    planting: { months: [2, 3, 4], depth: 1, spacing: 15, method: 'Semis en godets à l\'intérieur — repiquage en trou profond après 10-12 semaines' },
+    harvest: { months: [10, 11, 12, 1, 2, 3], duration: '150-180 jours après repiquage' },
+    care: {
+      water: 'Régulier mais pas excessif — sensible à l\'engorgement',
+      sun: 'Plein soleil à mi-ombre',
+      soil: 'Riche, profond, bien ameubli, pH 6,5-7',
+      tips: [
+        'Repiquer dans un trou de 15 cm creusé au plantoir — ne pas reboucher, laisser la pluie faire',
+        'Butter progressivement pour allonger et blanchir le fût (plusieurs fois)',
+        'Arroser au pied pour éviter la rouille du poireau',
+        'Peut rester en terre tout l\'hiver — récolter à la demande',
+        'Excellent en potée, vinaigrette tiède ou flambé',
+        'Succession idéale après les pois : les racines de pois enrichissent le sol'
+      ]
+    },
+    biodynamic: 'feuille',
+    companions: ['Carotte', 'Céleri', 'Tomate', 'Betterave'],
+    avoid: ['Haricot', 'Pois', 'Oignon (concurrence)'],
+    kokopelli: {
+      search: 'poireau',
+      catalogPath: '/fr/c/semences-d-oignons-et-de-poireaux',
+      varietiesKoko: ["Bleu d'Hiver", 'Monstrueux de Carentan', 'Saint Victor']
+    }
+  },
+  {
+    id: 'courge',
+    name: 'Courge',
+    emoji: '🎃',
+    category: 'legume-fruit',
+    description: 'La courge musquée (Cucurbita moschata) est la plus savoureuse et la mieux conservée de toutes. Moschata Banat est une variété ancienne d\'exception, très productive, à la chair ferme et dorée. Plante gourmande en espace — prévoir 3-4 m² par pied minimum.',
+    varieties: ['Moschata Banat', 'Butternut Waltham', 'Musquée de Provence', 'Longue de Nice', 'Spaghetti', 'Potimarron rouge'],
+    planting: { months: [4, 5], depth: 2, spacing: 200, method: 'Semis en godet intérieur (1-2 graines) — repiquage après les gelées, sol réchauffé' },
+    harvest: { months: [8, 9, 10], duration: '90-120 jours après repiquage' },
+    care: {
+      water: 'Abondant — 2-3 L/pied × 3 fois/semaine par temps chaud',
+      sun: 'Plein soleil indispensable — exposé Sud idéal',
+      soil: 'Très riche en compost, humifère, bien drainé, pH 6-7',
+      tips: [
+        'Pincer l\'apex principal après 2 fruits noués pour concentrer l\'énergie',
+        'Glisser une ardoise ou une tuile sous chaque fruit pour éviter le pourrissement',
+        'Couper la queue à 10 cm du fruit à la récolte — favorise la conservation',
+        'Conserver dans un endroit sec, tempéré (10-15°C) — se garde 6 à 8 mois',
+        'Moschata Banat tolère mieux la sécheresse que courgette ou concombre',
+        'Peut grimper sur une clôture ou un filet — nouer les fruits si plus de 3 kg'
+      ]
+    },
+    biodynamic: 'fruit',
+    companions: ['Haricot', 'Capucine', 'Basilic', 'Maïs'],
+    avoid: ['Pomme de terre', 'Courgette (compétition racines)'],
+    kokopelli: {
+      search: 'courge',
+      catalogPath: '/fr/c/semences-de-courgettes-et-courges',
+      varietiesKoko: ['Moschata Banat', 'Butternut Waltham', 'Musquée de Provence', 'Longue de Nice', 'Potimarron rouge']
+    }
   }
 ];
 
@@ -680,7 +773,10 @@ const PLANT_TIMELINE = {
   'capucine':   { plantType:'indoor',    weekToHarden:4,  weekToTransplant:6,  minOutdoorTemp:10, frostSensitive:true,  harvestDaysMin:50,  harvestDaysMax:150, biodynamicIdeal:'fleur'  },
   'tagete':     { plantType:'indoor',    weekToHarden:4,  weekToTransplant:6,  minOutdoorTemp:10, frostSensitive:true,  harvestDaysMin:55,  harvestDaysMax:150, biodynamicIdeal:'fleur'  },
   'bourrache':  { plantType:'indoor',    weekToHarden:2,  weekToTransplant:3,  minOutdoorTemp:8,  frostSensitive:false, harvestDaysMin:45,  harvestDaysMax:100, biodynamicIdeal:'fleur'  },
-  'tabac':      { plantType:'indoor',    weekToHarden:5,  weekToTransplant:7,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:80,  harvestDaysMax:160, biodynamicIdeal:'fleur'  },
+  'tabac':         { plantType:'indoor',  weekToHarden:5,  weekToTransplant:7,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:80,  harvestDaysMax:160, biodynamicIdeal:'fleur'  },
+  'pois-gourmand': { plantType:'direct',  weekToHarden:null,weekToTransplant:null,minOutdoorTemp:3, frostSensitive:false, harvestDaysMin:60,  harvestDaysMax:80,  biodynamicIdeal:'fruit'  },
+  'poireau':       { plantType:'indoor',  weekToHarden:10, weekToTransplant:12, minOutdoorTemp:5,  frostSensitive:false, harvestDaysMin:150, harvestDaysMax:200, biodynamicIdeal:'feuille' },
+  'courge':        { plantType:'indoor',  weekToHarden:3,  weekToTransplant:5,  minOutdoorTemp:12, frostSensitive:true,  harvestDaysMin:90,  harvestDaysMax:130, biodynamicIdeal:'fruit'  },
 };
 
 // ===== Statuts de croissance =====
@@ -697,12 +793,12 @@ const PLANT_STATUS = {
 // ===== Familles botaniques (pour la rotation des cultures) =====
 const BOTANICAL_FAMILIES = {
   solanacees:    { label: 'Solanacées',    emoji: '🍅', color: '#ffcdd2', rotationYears: 4, members: ['tomate','poivron','aubergine','pomme-de-terre','tabac'] },
-  cucurbitacees: { label: 'Cucurbitacées', emoji: '🥒', color: '#dcedc8', rotationYears: 3, members: ['courgette','concombre'] },
+  cucurbitacees: { label: 'Cucurbitacées', emoji: '🥒', color: '#dcedc8', rotationYears: 3, members: ['courgette','concombre','courge'] },
   apiacees:      { label: 'Apiacées',      emoji: '🥕', color: '#fff9c4', rotationYears: 3, members: ['carotte','persil','ciboulette'] },
   asteracees:    { label: 'Astéracées',    emoji: '🌼', color: '#f3e5f5', rotationYears: 2, members: ['salade','tagete'] },
-  fabacees:      { label: 'Fabacées',      emoji: '🫘', color: '#e8f5e9', rotationYears: 3, members: ['haricot'] },
+  fabacees:      { label: 'Fabacées',      emoji: '🫘', color: '#e8f5e9', rotationYears: 3, members: ['haricot','pois-gourmand'] },
   brassicacees:  { label: 'Brassicacées',  emoji: '🥬', color: '#e0f2f1', rotationYears: 3, members: ['radis'] },
-  alliacees:     { label: 'Alliacées',     emoji: '🧅', color: '#e8eaf6', rotationYears: 2, members: ['oignon','ail'] },
+  alliacees:     { label: 'Alliacées',     emoji: '🧅', color: '#e8eaf6', rotationYears: 2, members: ['oignon','ail','poireau'] },
   lamiacees:     { label: 'Lamiacées',     emoji: '🌿', color: '#e8f5e9', rotationYears: 2, members: ['basilic','menthe'] },
   chenopodiacees:{ label: 'Chénopodiacées',emoji: '🥬', color: '#fce4ec', rotationYears: 2, members: ['epinard','betterave'] },
   rosacees:      { label: 'Rosacées',      emoji: '🍓', color: '#fce4ec', rotationYears: 3, members: ['fraise'] },
@@ -729,11 +825,15 @@ const GARDEN_ZONES = [
   { id: 'B5',           label: 'B5 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — rotation 2027' },
   { id: 'B6',           label: 'B6 — Repos 2026',         emoji: '💤', type: 'repos',    mSize: 1,   color: '#eeeeee', note: 'Stabilisation — fumier poules automne' },
   { id: 'P1',           label: 'P1 — Carottes / Oignons', emoji: '🥕', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'No-dig carton-paille' },
-  { id: 'P2',           label: 'P2 — Pois / Haricots',   emoji: '🫘', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Succession : pois printemps → haricots été' },
+  { id: 'P2',           label: 'P2 — Pois / Poireaux',   emoji: '🫛', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Pois gourmand Norli printemps → Poireau Bleu d\'Hiver automne' },
+  { id: 'P3',           label: 'P3 — Divers légumes',    emoji: '🥗', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Zone polyvalente — salades, épinards, mâche' },
+  { id: 'P4',           label: 'P4 — Betteraves / Radis',emoji: '🟣', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Betteraves De Chioggia + Ronde de Détroit + Radis Sora intercalés' },
   { id: 'terre-plate',  label: 'Terre plate',             emoji: '🥗', type: 'flat',     mSize: 1,   color: '#fff9c4', note: 'Espaces libres — Salade Buttercrunch' },
   { id: 'melons',       label: 'Melons + PDT',            emoji: '🍈', type: 'flat',     mSize: 1.9, color: '#fff9c4', note: 'Zone large ~1,9 m — melons + pommes de terre' },
   { id: 'bordures',     label: 'Bordures',                emoji: '🌸', type: 'bordure',  mSize: 0.5, color: '#fce4ec', note: 'Capucine Empress of India + Bourrache bleue — toutes les planches' },
   { id: 'piquet Ouest', label: 'Piquet Ouest',            emoji: '🌸', type: 'bordure',  mSize: 0.5, color: '#fce4ec', note: 'Capucine Couleurs mélangées — grimpante sur piquet côté Ouest' },
+  { id: 'pot-terrasse', label: 'Pots Terrasse',           emoji: '🪴', type: 'terrasse', mSize: 0,   color: '#ffe0b2', note: 'Pots hors-sol sur la terrasse — non visible sur le plan jardin' },
+  { id: 'a-definir',    label: 'Emplacement à définir',  emoji: '📍', type: 'autre',    mSize: 0,   color: '#f5f5f5', note: 'Zone temporaire — emplacement à préciser avant repiquage' },
 ];
 
 // ===== Enrichissement Kokopelli : on injecte les données après définition du tableau
